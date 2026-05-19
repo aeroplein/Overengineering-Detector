@@ -1,8 +1,11 @@
 import express from "express";
 import pool from "./config/db.js";
-
+import projectRoutes from "./routes/projectRoutes.js";
 const app = express();
 app.use(express.json());
+
+app.use("/", projectRoutes);
+
 app.get("/health", (req, res) => {
     res.json({
         status: "ok",
