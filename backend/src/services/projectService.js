@@ -2,7 +2,7 @@ import pool from "../config/db.js";
 
 export const createProject = async (projectData) => {
     const { user_id = null, name, daily_users, scale, visibility = "private" } = projectData;
-    
+
     const result = await pool.query(
         `INSERT INTO projects (user_id, name, daily_users, scale, visibility)
          VALUES ($1, $2, $3, $4, $5)
@@ -13,12 +13,15 @@ export const createProject = async (projectData) => {
     return result.rows[0];
 };
 
-export const getAllProjects = async () => {
+export const getAllProjects = async (userId) => {
     const result = await pool.query(
         `SELECT *
          FROM projects
-         ORDER BY created_at DESC`
+         WHERE user_id = $1
+         ORDER BY created_at DESC`,
+        [userId]
     );
+
     return result.rows;
 };
 
@@ -70,7 +73,7 @@ export const updateProject = async (id, projectData) => {
 
 export const deleteProject = async (id) => {
     const result = await pool.query(
-         `DELETE FROM projects
+        `DELETE FROM projects
           WHERE id = $1
           RETURNING *`,
         [id]
@@ -78,4 +81,26 @@ export const deleteProject = async (id) => {
     return result.rows[0];
 };
 
- 
+export const addTechnologiesToProject = async (projectId, technologyIds) => {
+    const placeholders = technologyIds.map((_, i) => `($1, $${i + 2})`).join(", ");
+    const query = `
+        INSERT INTO project_technologies (project_id, technology_id)
+        VALUES ${placeholders}
+        ON CONFLICT (project_id, technology_id) DO NOTHING
+        RETURNING *;
+    `;
+
+    const result = await pool.query(query, [projectId, ...technologyIds]);
+    return result.rows;
+};
+
+export const getProjectTechnologies = async (projectId) => {
+    const result = await pool.query(
+        `SELECT t.* 
+         FROM technologies t
+         JOIN project_technologies pt ON t.id = pt.technology_id
+         WHERE pt.project_id = $1`,
+        [projectId]
+    );
+    return result.rows;
+};

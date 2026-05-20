@@ -1,14 +1,16 @@
+import dotenv from "dotenv";
 import pg from "pg";
+
+dotenv.config();
+
 const { Pool } = pg;
 
-//here pool is the db connection manager.
-//feature work could include resuing pools instead of creating new one every time.
 const pool = new Pool({
-    user: "postgres",
-    host: "localhost",
-    database: "overengineering_detector",
-    password: "password",
-    port: 5432
+    user: process.env.DB_USER,
+    host: process.env.DB_HOST,
+    database: process.env.DB_NAME,
+    password: process.env.DB_PASSWORD,
+    port: Number(process.env.DB_PORT)
 });
 
 export default pool;
