@@ -67,9 +67,9 @@ export const calculateScores = (project, technologies) => {
     const stack_score = frontend_score + backend_score + infrastructure_score;
     const necessary_complexity = getRequiredComplexity(project);
     const underengineering_score = Math.max(necessary_complexity - stack_score, 0);
-    const total_score = stack_score + penalty_score;
     const complexity_direction =
         underengineering_score > penalty_score ? "underengineering" : "overengineering";
+    const total_score = stack_score + penalty_score + underengineering_score;
 
     return {
         frontend_score,
@@ -213,10 +213,10 @@ export const generateRadar = (scores) => ({
 });
 
 export const generateBadge = (scores, flags) => {
-    if (scores.underengineering_score >= 20) {
+    if (scores.underengineering_score >= 10) {
         return {
             label: "Underengineered",
-            tone: "danger",
+            tone: scores.underengineering_score >= 20 ? "danger" : "warning",
             description: "The stack is too thin for the selected scale."
         };
     }

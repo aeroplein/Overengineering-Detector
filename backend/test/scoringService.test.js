@@ -50,6 +50,7 @@ test("calculateScores identifies enterprise projects with too little stack as un
 
     assert.equal(scores.necessary_complexity, 25);
     assert.equal(scores.underengineering_score, 25);
+    assert.equal(scores.total_score, 25);
     assert.equal(scores.complexity_direction, "underengineering");
     assert.equal(generateEvaluation(scores), "Underengineered for the project scale.");
 });

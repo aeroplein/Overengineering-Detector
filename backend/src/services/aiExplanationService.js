@@ -27,7 +27,7 @@ export const generateAiExplanation = ({ project, technologies, scores, flags, re
 
         return [
             `${project.name} is a ${project.scale.toLowerCase()} project with ${project.daily_users} expected daily users and ${techCount} selected technologies.`,
-            `The deterministic score is ${scores.total_score}, driven by frontend ${scores.frontend_score}, backend ${scores.backend_score}, infrastructure ${scores.infrastructure_score}, and ${gapSummary}.`,
+            `The deterministic risk score is ${scores.total_score}, driven by frontend ${scores.frontend_score}, backend ${scores.backend_score}, infrastructure ${scores.infrastructure_score}, and ${gapSummary}.`,
             `Main simplification signal: ${labelFlags(flags)}.`,
             `Suggestion: ${topRecommendation}`
         ].join(" ");

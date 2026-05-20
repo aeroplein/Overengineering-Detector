@@ -366,6 +366,7 @@ const calculateDashboardMetrics = (result) => {
     const penalty = Number(scores.penalty_score || 0);
     const underengineering = Number(scores.underengineering_score || 0);
     const total = Number(scores.total_score || 0);
+    const implemented = Number(scores.stack_score || Math.max(total - penalty - underengineering, 0));
     const necessary = Number(scores.necessary_complexity || Math.max(total - penalty, 0));
     const direction = scores.complexity_direction || (underengineering > penalty ? "underengineering" : "overengineering");
     const gapScore = direction === "underengineering" ? underengineering : penalty;
@@ -374,6 +375,7 @@ const calculateDashboardMetrics = (result) => {
 
     return {
         total,
+        implemented,
         necessary,
         penalty,
         underengineering,
@@ -408,7 +410,7 @@ const renderCharts = (result, metrics) => {
     ];
     const colors = ["#4f7f8f", "#7d6ab3", "#b48a4c", "#b85b5b"];
     const maxValue = Math.max(...values, 1);
-    const implemented = Math.max(metrics.total - metrics.penalty, 0);
+    const implemented = metrics.implemented;
     const gap = metrics.gapScore;
     const gapDegrees = Math.round((gap / Math.max(implemented + gap, 1)) * 360);
 
