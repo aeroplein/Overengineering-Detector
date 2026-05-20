@@ -448,7 +448,7 @@ textarea:focus {
 }
 
 .adminTechCard span,
-.knowledgeCard span,
+.knowledgeCard summary span,
 .knowledgeCard p,
 .miniInfo p,
 .timelineItem span,
@@ -464,6 +464,49 @@ textarea:focus {
     margin-top: 8px;
     color: var(--accent-strong);
     font-weight: 800;
+}
+
+.knowledgeCard {
+    padding: 0;
+}
+
+.knowledgeCard summary {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    min-height: 52px;
+    padding: 12px;
+    cursor: pointer;
+    list-style: none;
+}
+
+.knowledgeCard summary::-webkit-details-marker {
+    display: none;
+}
+
+.knowledgeCard summary::after {
+    content: "+";
+    width: 28px;
+    height: 28px;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    display: grid;
+    place-items: center;
+    color: var(--accent-strong);
+    font-weight: 900;
+}
+
+.knowledgeCard[open] summary {
+    border-bottom: 1px solid var(--line);
+}
+
+.knowledgeCard[open] summary::after {
+    content: "-";
+}
+
+.knowledgeDetails {
+    padding: 12px;
 }
 
 .dashboardDetails {

@@ -262,21 +262,32 @@ const renderAdminTechnologies = () => {
 };
 
 const renderKnowledgeBase = () => {
-    if (state.knowledgeTechnologies.length === 0) {
+    const uniqueTechnologies = [...new Map(
+        state.knowledgeTechnologies.map((technology) => [
+            `${technology.name.toLowerCase()}-${technology.category.toLowerCase()}`,
+            technology
+        ])
+    ).values()];
+
+    if (uniqueTechnologies.length === 0) {
         els.knowledgeList.innerHTML = `<p class="muted">No knowledge entries yet.</p>`;
         return;
     }
 
-    els.knowledgeList.innerHTML = state.knowledgeTechnologies.map((technology) => `
-        <article class="knowledgeCard">
-            <strong>${escapeHtml(technology.name)}</strong>
-            <span>${escapeHtml(technology.category)} / weight ${escapeHtml(technology.complexity_weight)}</span>
-            <p>${escapeHtml(technology.description || "No description added yet.")}</p>
-            <p><b>Best for:</b> ${escapeHtml(technology.best_for || "Not specified.")}</p>
-            <p><b>Risks:</b> ${escapeHtml(technology.risk_notes || "No risk notes.")}</p>
-            <p><b>Alternatives:</b> ${escapeHtml(technology.alternatives || "No alternatives listed.")}</p>
-            ${technology.docs_url ? `<a href="${escapeHtml(technology.docs_url)}" target="_blank" rel="noreferrer">Docs</a>` : ""}
-        </article>
+    els.knowledgeList.innerHTML = uniqueTechnologies.map((technology) => `
+        <details class="knowledgeCard">
+            <summary>
+                <strong>${escapeHtml(technology.name)}</strong>
+                <span>${escapeHtml(technology.category)} / weight ${escapeHtml(technology.complexity_weight)}</span>
+            </summary>
+            <div class="knowledgeDetails">
+                <p>${escapeHtml(technology.description || "No description added yet.")}</p>
+                <p><b>Best for:</b> ${escapeHtml(technology.best_for || "Not specified.")}</p>
+                <p><b>Risks:</b> ${escapeHtml(technology.risk_notes || "No risk notes.")}</p>
+                <p><b>Alternatives:</b> ${escapeHtml(technology.alternatives || "No alternatives listed.")}</p>
+                ${technology.docs_url ? `<a href="${escapeHtml(technology.docs_url)}" target="_blank" rel="noreferrer">Docs</a>` : ""}
+            </div>
+        </details>
     `).join("");
 };
 
