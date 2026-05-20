@@ -26,6 +26,8 @@ const els = {
     necessaryComplexity: document.querySelector("#necessaryComplexity"),
     overengineeringPercent: document.querySelector("#overengineeringPercent"),
     riskLevel: document.querySelector("#riskLevel"),
+    scoreBreakdownFrame: document.querySelector("#scoreBreakdownFrame"),
+    overengineeringFrame: document.querySelector("#overengineeringFrame"),
     scoreBreakdownChart: document.querySelector("#scoreBreakdownChart"),
     overengineeringChart: document.querySelector("#overengineeringChart"),
     analysisResult: document.querySelector("#analysisResult"),
@@ -245,12 +247,20 @@ const calculateDashboardMetrics = (result) => {
 const renderCharts = (result, metrics) => {
     const Chart = window.Chart;
 
-    if (!Chart) {
+    scoreBreakdownChart?.destroy();
+    overengineeringChart?.destroy();
+    scoreBreakdownChart = null;
+    overengineeringChart = null;
+    els.scoreBreakdownFrame.classList.toggle("emptyChart", metrics.total === 0);
+    els.overengineeringFrame.classList.toggle("emptyChart", metrics.total === 0);
+
+    if (metrics.total === 0) {
         return;
     }
 
-    scoreBreakdownChart?.destroy();
-    overengineeringChart?.destroy();
+    if (!Chart) {
+        return;
+    }
 
     scoreBreakdownChart = new Chart(els.scoreBreakdownChart, {
         type: "bar",
