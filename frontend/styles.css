@@ -501,17 +501,6 @@ select:focus {
     padding: 20px;
 }
 
-.chartFrame canvas {
-    width: 100%;
-    height: 230px;
-    display: block;
-    background: #fffdfa;
-}
-
-.chartFrame.emptyChart canvas {
-    opacity: 0;
-}
-
 .historyBlock {
     display: grid;
     gap: 10px;
@@ -571,6 +560,111 @@ select:focus {
 .scoreBox strong {
     display: block;
     font-size: 24px;
+}
+
+.barChart {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    align-items: end;
+    gap: 18px;
+    height: 230px;
+}
+
+.barItem {
+    display: grid;
+    grid-template-rows: 22px 1fr 20px;
+    gap: 8px;
+    height: 100%;
+}
+
+.barItem strong {
+    font-size: 13px;
+}
+
+.barItem small {
+    color: var(--muted);
+    font-size: 12px;
+    font-weight: 700;
+}
+
+.barTrack {
+    display: flex;
+    align-items: end;
+    min-height: 0;
+    border-radius: 8px;
+    background: rgba(240, 232, 246, 0.72);
+    overflow: hidden;
+}
+
+.barTrack span {
+    display: block;
+    width: 100%;
+    min-height: 0;
+    border-radius: 8px 8px 0 0;
+}
+
+.ringChart {
+    width: 170px;
+    height: 170px;
+    margin: 12px auto 14px;
+    border-radius: 50%;
+    background: conic-gradient(#b85b5b var(--gap-deg), #4f7f8f 0);
+    display: grid;
+    place-items: center;
+}
+
+.ringCenter {
+    width: 104px;
+    height: 104px;
+    border-radius: 50%;
+    background: #fffdfa;
+    display: grid;
+    place-items: center;
+    align-content: center;
+}
+
+.ringCenter strong,
+.ringCenter span {
+    display: block;
+}
+
+.ringCenter strong {
+    font-size: 26px;
+}
+
+.ringCenter span {
+    color: var(--muted);
+    font-size: 12px;
+    font-weight: 800;
+    text-transform: uppercase;
+}
+
+.ringLegend {
+    display: grid;
+    gap: 8px;
+    color: var(--muted);
+    font-size: 12px;
+    font-weight: 700;
+}
+
+.ringLegend span {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.ringLegend i {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+}
+
+.implementedKey {
+    background: #4f7f8f;
+}
+
+.gapKey {
+    background: #b85b5b;
 }
 
 .pillList {

@@ -29,8 +29,6 @@ const els = {
     riskLevel: document.querySelector("#riskLevel"),
     scoreBreakdownFrame: document.querySelector("#scoreBreakdownFrame"),
     overengineeringFrame: document.querySelector("#overengineeringFrame"),
-    scoreBreakdownChart: document.querySelector("#scoreBreakdownChart"),
-    overengineeringChart: document.querySelector("#overengineeringChart"),
     analysisResult: document.querySelector("#analysisResult"),
     analysisHistory: document.querySelector("#analysisHistory"),
     message: document.querySelector("#message"),
@@ -46,21 +44,6 @@ els.deleteDialog = document.querySelector("#deleteDialog");
 els.deleteDialogText = document.querySelector("#deleteDialogText");
 els.cancelDeleteButton = document.querySelector("#cancelDeleteButton");
 els.confirmDeleteButton = document.querySelector("#confirmDeleteButton");
-
-let scoreBreakdownChart = null;
-let overengineeringChart = null;
-
-const canvasBackgroundPlugin = {
-    id: "canvasBackground",
-    beforeDraw: (chart) => {
-        const { ctx, width, height } = chart;
-        ctx.save();
-        ctx.globalCompositeOperation = "source-over";
-        ctx.fillStyle = "#fffdfa";
-        ctx.fillRect(0, 0, width, height);
-        ctx.restore();
-    }
-};
 
 const setMessage = (message, isError = true) => {
     els.message.textContent = message;
@@ -302,128 +285,15 @@ const calculateDashboardMetrics = (result) => {
 };
 
 const renderCharts = (result, metrics) => {
-    const Chart = window.Chart;
-
-    scoreBreakdownChart?.destroy();
-    overengineeringChart?.destroy();
-    scoreBreakdownChart = null;
-    overengineeringChart = null;
     els.scoreBreakdownFrame.classList.toggle("emptyChart", metrics.total === 0 && metrics.gapScore === 0);
     els.overengineeringFrame.classList.toggle("emptyChart", metrics.total === 0 && metrics.gapScore === 0);
 
     if (metrics.total === 0 && metrics.gapScore === 0) {
+        els.scoreBreakdownFrame.innerHTML = "";
+        els.overengineeringFrame.innerHTML = "";
         return;
     }
 
-    if (!Chart) {
-        renderFallbackCharts(result, metrics);
-        return;
-    }
-
-    Chart.register(canvasBackgroundPlugin);
-
-    scoreBreakdownChart = new Chart(els.scoreBreakdownChart, {
-        type: "bar",
-        data: {
-            labels: [
-                "Frontend",
-                "Backend",
-                "Infrastructure",
-                metrics.direction === "underengineering" ? "Underengineering" : "Overengineering"
-            ],
-            datasets: [{
-                label: "Score",
-                data: [
-                    result.scores.frontend_score,
-                    result.scores.backend_score,
-                    result.scores.infrastructure_score,
-                    metrics.direction === "underengineering" ? metrics.underengineering : metrics.penalty
-                ],
-                backgroundColor: ["#4f7f8f", "#7d6ab3", "#b48a4c", "#b85b5b"],
-                borderRadius: 8
-            }]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: {
-                legend: { display: false }
-            },
-            scales: {
-                y: {
-                    beginAtZero: true,
-                    ticks: { precision: 0 }
-                }
-            }
-        }
-    });
-
-    overengineeringChart = new Chart(els.overengineeringChart, {
-        type: "doughnut",
-        data: {
-            labels: [
-                "Implemented complexity",
-                metrics.direction === "underengineering" ? "Underengineering" : "Overengineering"
-            ],
-            datasets: [{
-                data: [
-                    Math.max(metrics.total - metrics.penalty, 0),
-                    metrics.gapScore
-                ],
-                backgroundColor: ["#4f7f8f", "#b85b5b"],
-                borderColor: "#fffdfa",
-                borderWidth: 4
-            }]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            cutout: "68%",
-            plugins: {
-                legend: {
-                    position: "bottom"
-                }
-            }
-        }
-    });
-};
-
-const drawRoundedBar = (ctx, x, y, width, height, radius, color) => {
-    const safeRadius = Math.min(radius, width / 2, height / 2);
-    ctx.fillStyle = color;
-    ctx.beginPath();
-    ctx.moveTo(x + safeRadius, y);
-    ctx.lineTo(x + width - safeRadius, y);
-    ctx.quadraticCurveTo(x + width, y, x + width, y + safeRadius);
-    ctx.lineTo(x + width, y + height);
-    ctx.lineTo(x, y + height);
-    ctx.lineTo(x, y + safeRadius);
-    ctx.quadraticCurveTo(x, y, x + safeRadius, y);
-    ctx.closePath();
-    ctx.fill();
-};
-
-const prepareCanvas = (canvas) => {
-    const scale = window.devicePixelRatio || 1;
-    const width = Math.max(Math.floor(canvas.clientWidth * scale), 300);
-    const height = Math.max(Math.floor(canvas.clientHeight * scale), 230);
-    canvas.width = width;
-    canvas.height = height;
-    return {
-        scale,
-        width,
-        height
-    };
-};
-
-const renderFallbackCharts = (result, metrics) => {
-    const breakdownCanvas = els.scoreBreakdownChart;
-    const doughnutCanvas = els.overengineeringChart;
-    const breakdownSize = prepareCanvas(breakdownCanvas);
-    const doughnutSize = prepareCanvas(doughnutCanvas);
-    const breakdownCtx = breakdownCanvas.getContext("2d");
-    const doughnutCtx = doughnutCanvas.getContext("2d");
-    const colors = ["#4f7f8f", "#7d6ab3", "#b48a4c", "#b85b5b"];
     const values = [
         result.scores.frontend_score,
         result.scores.backend_score,
@@ -436,61 +306,38 @@ const renderFallbackCharts = (result, metrics) => {
         "Infra",
         metrics.direction === "underengineering" ? "Under" : "Over"
     ];
-
-    breakdownCtx.scale(breakdownSize.scale, breakdownSize.scale);
-    breakdownCtx.clearRect(0, 0, breakdownCanvas.width, breakdownCanvas.height);
-    breakdownCtx.fillStyle = "#fffdfa";
-    breakdownCtx.fillRect(0, 0, breakdownCanvas.width, breakdownCanvas.height);
-    const drawableWidth = breakdownSize.width / breakdownSize.scale;
-    const drawableHeight = breakdownSize.height / breakdownSize.scale;
+    const colors = ["#4f7f8f", "#7d6ab3", "#b48a4c", "#b85b5b"];
     const maxValue = Math.max(...values, 1);
-    const barWidth = drawableWidth / values.length - 26;
-    const chartBaseline = drawableHeight - 44;
-    const maxBarHeight = drawableHeight - 88;
-    values.forEach((value, index) => {
-        const barHeight = Math.round((value / maxValue) * maxBarHeight);
-        const x = 18 + index * (barWidth + 26);
-        const y = chartBaseline - barHeight;
-        drawRoundedBar(breakdownCtx, x, y, barWidth, barHeight, 8, colors[index]);
-        breakdownCtx.fillStyle = "#241f2f";
-        breakdownCtx.font = "bold 13px sans-serif";
-        breakdownCtx.fillText(String(value), x, y - 8);
-        breakdownCtx.fillStyle = "#7b7187";
-        breakdownCtx.font = "12px sans-serif";
-        breakdownCtx.fillText(labels[index], x, drawableHeight - 18);
-    });
-
-    doughnutCtx.scale(doughnutSize.scale, doughnutSize.scale);
-    doughnutCtx.clearRect(0, 0, doughnutCanvas.width, doughnutCanvas.height);
-    doughnutCtx.fillStyle = "#fffdfa";
-    doughnutCtx.fillRect(0, 0, doughnutCanvas.width, doughnutCanvas.height);
     const implemented = Math.max(metrics.total - metrics.penalty, 0);
     const gap = metrics.gapScore;
-    const sum = Math.max(implemented + gap, 1);
-    const doughnutWidth = doughnutSize.width / doughnutSize.scale;
-    const centerX = doughnutWidth / 2;
-    const centerY = 104;
-    const radius = 72;
-    let startAngle = -Math.PI / 2;
-    [implemented, gap].forEach((value, index) => {
-        const angle = (value / sum) * Math.PI * 2;
-        doughnutCtx.beginPath();
-        doughnutCtx.moveTo(centerX, centerY);
-        doughnutCtx.arc(centerX, centerY, radius, startAngle, startAngle + angle);
-        doughnutCtx.closePath();
-        doughnutCtx.fillStyle = index === 0 ? "#4f7f8f" : "#b85b5b";
-        doughnutCtx.fill();
-        startAngle += angle;
-    });
-    doughnutCtx.beginPath();
-    doughnutCtx.arc(centerX, centerY, 42, 0, Math.PI * 2);
-    doughnutCtx.fillStyle = "#fffdfa";
-    doughnutCtx.fill();
-    doughnutCtx.fillStyle = "#241f2f";
-    doughnutCtx.font = "bold 22px sans-serif";
-    doughnutCtx.textAlign = "center";
-    doughnutCtx.fillText(`${metrics.gapPercent}%`, centerX, centerY + 7);
-    doughnutCtx.textAlign = "left";
+    const gapDegrees = Math.round((gap / Math.max(implemented + gap, 1)) * 360);
+
+    els.scoreBreakdownFrame.innerHTML = `
+        <div class="barChart" role="img" aria-label="Score breakdown">
+            ${values.map((value, index) => `
+                <div class="barItem">
+                    <strong>${escapeHtml(value)}</strong>
+                    <div class="barTrack">
+                        <span style="height: ${Math.max((value / maxValue) * 100, value > 0 ? 6 : 0)}%; background: ${colors[index]}"></span>
+                    </div>
+                    <small>${escapeHtml(labels[index])}</small>
+                </div>
+            `).join("")}
+        </div>
+    `;
+
+    els.overengineeringFrame.innerHTML = `
+        <div class="ringChart" style="--gap-deg: ${gapDegrees}deg" role="img" aria-label="Complexity gap">
+            <div class="ringCenter">
+                <strong>${escapeHtml(metrics.gapPercent)}%</strong>
+                <span>${escapeHtml(metrics.direction === "underengineering" ? "Under" : "Over")}</span>
+            </div>
+        </div>
+        <div class="ringLegend">
+            <span><i class="implementedKey"></i>Implemented ${escapeHtml(implemented)}</span>
+            <span><i class="gapKey"></i>${escapeHtml(metrics.direction === "underengineering" ? "Underengineering" : "Overengineering")} ${escapeHtml(gap)}</span>
+        </div>
+    `;
 };
 
 const renderDashboard = (result) => {
@@ -512,10 +359,8 @@ const resetAnalysisView = (message = "Select a project and run analysis.") => {
     els.scoreDashboard.classList.add("hidden");
     els.analysisResult.classList.add("muted");
     els.analysisResult.textContent = message;
-    scoreBreakdownChart?.destroy();
-    overengineeringChart?.destroy();
-    scoreBreakdownChart = null;
-    overengineeringChart = null;
+    els.scoreBreakdownFrame.innerHTML = "";
+    els.overengineeringFrame.innerHTML = "";
 };
 
 const renderAnalysis = (result) => {
