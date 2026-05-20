@@ -727,6 +727,25 @@ textarea:focus {
     line-height: 1.5;
 }
 
+.plainExplanation,
+.deltaLegend {
+    margin: 0 0 12px;
+    color: #514760;
+    line-height: 1.5;
+}
+
+.plainExplanation {
+    border-left: 3px solid var(--accent);
+    padding: 10px 12px;
+    background: rgba(255, 253, 250, 0.72);
+}
+
+.deltaLegend {
+    margin-top: 10px;
+    color: var(--muted);
+    font-size: 13px;
+}
+
 .scoreGrid {
     display: grid;
     grid-template-columns: repeat(4, minmax(0, 1fr));

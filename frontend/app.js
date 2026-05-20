@@ -533,6 +533,49 @@ const renderAnalysis = (result) => {
     `;
 };
 
+const explainWhatIfResult = (result) => {
+    const direction = result.scores.complexity_direction === "underengineering"
+        ? "underengineered"
+        : "overengineered";
+
+    if (result.scores.underengineering_score > 0) {
+        return `This simulation is ${direction}: the stack is missing about ${result.scores.underengineering_score} complexity points compared with the selected scale and user count.`;
+    }
+
+    if (result.scores.penalty_score > 0) {
+        return `This simulation adds ${result.scores.penalty_score} overengineering penalty points, meaning some selected tools may be heavier than the project currently needs.`;
+    }
+
+    return "This simulation looks balanced for the selected scale, user count, and technologies.";
+};
+
+const explainComparison = (result) => {
+    const totalDelta = result.delta.total_score;
+    const overDelta = result.delta.overengineering;
+    const underDelta = result.delta.underengineering;
+    const targetName = result.right.project.name;
+
+    const totalMeaning = totalDelta > 0
+        ? `${targetName} has ${totalDelta} more total risk points.`
+        : totalDelta < 0
+            ? `${targetName} has ${Math.abs(totalDelta)} fewer total risk points.`
+            : "Both projects have the same total risk score.";
+
+    const overMeaning = overDelta > 0
+        ? `It is ${overDelta} points more overengineered.`
+        : overDelta < 0
+            ? `It is ${Math.abs(overDelta)} points less overengineered.`
+            : "Its overengineering penalty is the same.";
+
+    const underMeaning = underDelta > 0
+        ? `It is ${underDelta} points more underengineered, so its stack may be too thin for its context.`
+        : underDelta < 0
+            ? `It is ${Math.abs(underDelta)} points less underengineered, so it better covers its required complexity.`
+            : "Its underengineering gap is the same.";
+
+    return `${totalMeaning} ${overMeaning} ${underMeaning}`;
+};
+
 const renderAnalysisHistory = (history) => {
     if (!history.length) {
         els.analysisHistory.classList.add("muted");
@@ -907,6 +950,7 @@ els.whatIfForm.addEventListener("submit", async (event) => {
         els.whatIfResult.classList.remove("muted");
         els.whatIfResult.innerHTML = `
             <strong>${escapeHtml(result.analysis.evaluation)}</strong>
+            <p class="plainExplanation">${escapeHtml(explainWhatIfResult(result))}</p>
             <div class="scoreGrid">
                 <div class="scoreBox"><span>Total</span><strong>${escapeHtml(result.scores.total_score)}</strong></div>
                 <div class="scoreBox"><span>Under</span><strong>${escapeHtml(result.scores.underengineering_score)}</strong></div>
@@ -931,12 +975,17 @@ els.comparisonForm.addEventListener("submit", async (event) => {
         .then((result) => {
             els.comparisonResult.classList.remove("muted");
             els.comparisonResult.innerHTML = `
+                <p class="plainExplanation">${escapeHtml(explainComparison(result))}</p>
                 <div class="scoreGrid">
                     <div class="scoreBox"><span>${escapeHtml(result.left.project.name)}</span><strong>${escapeHtml(result.left.scores.total_score)}</strong></div>
                     <div class="scoreBox"><span>${escapeHtml(result.right.project.name)}</span><strong>${escapeHtml(result.right.scores.total_score)}</strong></div>
                     <div class="scoreBox"><span>Total delta</span><strong>${escapeHtml(result.delta.total_score)}</strong></div>
-                    <div class="scoreBox"><span>Risk delta</span><strong>${escapeHtml(result.delta.overengineering)}</strong></div>
+                    <div class="scoreBox"><span>Overengineering delta</span><strong>${escapeHtml(result.delta.overengineering)}</strong></div>
                 </div>
+                <p class="deltaLegend">
+                    Total delta compares overall risk score. Negative means the compared project has less total risk; positive means more total risk.
+                    Risk delta compares only overengineering penalty. Underengineering differences are explained above.
+                </p>
             `;
             setMessage("Comparison complete.", false);
         }).catch((error) => setMessage(error.message));
