@@ -966,3 +966,15 @@ textarea:focus {
         display: grid;
     }
 }
+
+/* Admin Mode Layout adjustments & Hiding project-related panels */
+.workspace.adminMode {
+    grid-template-columns: 1fr;
+}
+
+.workspace.adminMode .sidebar,
+.workspace.adminMode #projectForm,
+.workspace.adminMode #projectTechnologiesPanel,
+.workspace.adminMode #analysisPanel {
+    display: none !important;
+}

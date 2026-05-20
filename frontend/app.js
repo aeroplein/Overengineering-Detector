@@ -146,11 +146,13 @@ const clearSession = () => {
 
 const renderSession = () => {
     const signedIn = Boolean(state.token);
+    const isAdmin = state.user?.role === "admin";
     els.authView.classList.toggle("hidden", signedIn);
     els.appView.classList.toggle("hidden", !signedIn);
+    els.appView.classList.toggle("adminMode", isAdmin);
     els.session.classList.toggle("hidden", !signedIn);
     els.logoutButton.classList.toggle("hidden", !signedIn);
-    els.adminPanel.classList.toggle("hidden", state.user?.role !== "admin");
+    els.adminPanel.classList.toggle("hidden", !isAdmin);
     els.sessionEmail.textContent = state.user?.email || "";
 };
 
@@ -648,10 +650,16 @@ const bootstrapApp = async () => {
         return;
     }
 
+    const isAdmin = state.user?.role === "admin";
+
     try {
-        await Promise.all([loadProjects(), loadTechnologies()]);
-        await Promise.all([loadKnowledgeBase(), loadAdminTechnologies()]);
-        await loadSelectedProjectDetails();
+        if (isAdmin) {
+            await Promise.all([loadKnowledgeBase(), loadAdminTechnologies()]);
+        } else {
+            await Promise.all([loadProjects(), loadTechnologies()]);
+            await loadKnowledgeBase();
+            await loadSelectedProjectDetails();
+        }
         setMessage("", false);
     } catch (error) {
         clearSession();
