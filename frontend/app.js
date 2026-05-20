@@ -50,6 +50,18 @@ els.confirmDeleteButton = document.querySelector("#confirmDeleteButton");
 let scoreBreakdownChart = null;
 let overengineeringChart = null;
 
+const canvasBackgroundPlugin = {
+    id: "canvasBackground",
+    beforeDraw: (chart) => {
+        const { ctx, width, height } = chart;
+        ctx.save();
+        ctx.globalCompositeOperation = "source-over";
+        ctx.fillStyle = "#fffdfa";
+        ctx.fillRect(0, 0, width, height);
+        ctx.restore();
+    }
+};
+
 const setMessage = (message, isError = true) => {
     els.message.textContent = message;
     els.message.classList.toggle("success", !isError);
@@ -304,8 +316,11 @@ const renderCharts = (result, metrics) => {
     }
 
     if (!Chart) {
+        renderFallbackCharts(result, metrics);
         return;
     }
+
+    Chart.register(canvasBackgroundPlugin);
 
     scoreBreakdownChart = new Chart(els.scoreBreakdownChart, {
         type: "bar",
@@ -371,6 +386,111 @@ const renderCharts = (result, metrics) => {
             }
         }
     });
+};
+
+const drawRoundedBar = (ctx, x, y, width, height, radius, color) => {
+    const safeRadius = Math.min(radius, width / 2, height / 2);
+    ctx.fillStyle = color;
+    ctx.beginPath();
+    ctx.moveTo(x + safeRadius, y);
+    ctx.lineTo(x + width - safeRadius, y);
+    ctx.quadraticCurveTo(x + width, y, x + width, y + safeRadius);
+    ctx.lineTo(x + width, y + height);
+    ctx.lineTo(x, y + height);
+    ctx.lineTo(x, y + safeRadius);
+    ctx.quadraticCurveTo(x, y, x + safeRadius, y);
+    ctx.closePath();
+    ctx.fill();
+};
+
+const prepareCanvas = (canvas) => {
+    const scale = window.devicePixelRatio || 1;
+    const width = Math.max(Math.floor(canvas.clientWidth * scale), 300);
+    const height = Math.max(Math.floor(canvas.clientHeight * scale), 230);
+    canvas.width = width;
+    canvas.height = height;
+    return {
+        scale,
+        width,
+        height
+    };
+};
+
+const renderFallbackCharts = (result, metrics) => {
+    const breakdownCanvas = els.scoreBreakdownChart;
+    const doughnutCanvas = els.overengineeringChart;
+    const breakdownSize = prepareCanvas(breakdownCanvas);
+    const doughnutSize = prepareCanvas(doughnutCanvas);
+    const breakdownCtx = breakdownCanvas.getContext("2d");
+    const doughnutCtx = doughnutCanvas.getContext("2d");
+    const colors = ["#4f7f8f", "#7d6ab3", "#b48a4c", "#b85b5b"];
+    const values = [
+        result.scores.frontend_score,
+        result.scores.backend_score,
+        result.scores.infrastructure_score,
+        metrics.direction === "underengineering" ? metrics.underengineering : metrics.penalty
+    ];
+    const labels = [
+        "Frontend",
+        "Backend",
+        "Infra",
+        metrics.direction === "underengineering" ? "Under" : "Over"
+    ];
+
+    breakdownCtx.scale(breakdownSize.scale, breakdownSize.scale);
+    breakdownCtx.clearRect(0, 0, breakdownCanvas.width, breakdownCanvas.height);
+    breakdownCtx.fillStyle = "#fffdfa";
+    breakdownCtx.fillRect(0, 0, breakdownCanvas.width, breakdownCanvas.height);
+    const drawableWidth = breakdownSize.width / breakdownSize.scale;
+    const drawableHeight = breakdownSize.height / breakdownSize.scale;
+    const maxValue = Math.max(...values, 1);
+    const barWidth = drawableWidth / values.length - 26;
+    const chartBaseline = drawableHeight - 44;
+    const maxBarHeight = drawableHeight - 88;
+    values.forEach((value, index) => {
+        const barHeight = Math.round((value / maxValue) * maxBarHeight);
+        const x = 18 + index * (barWidth + 26);
+        const y = chartBaseline - barHeight;
+        drawRoundedBar(breakdownCtx, x, y, barWidth, barHeight, 8, colors[index]);
+        breakdownCtx.fillStyle = "#241f2f";
+        breakdownCtx.font = "bold 13px sans-serif";
+        breakdownCtx.fillText(String(value), x, y - 8);
+        breakdownCtx.fillStyle = "#7b7187";
+        breakdownCtx.font = "12px sans-serif";
+        breakdownCtx.fillText(labels[index], x, drawableHeight - 18);
+    });
+
+    doughnutCtx.scale(doughnutSize.scale, doughnutSize.scale);
+    doughnutCtx.clearRect(0, 0, doughnutCanvas.width, doughnutCanvas.height);
+    doughnutCtx.fillStyle = "#fffdfa";
+    doughnutCtx.fillRect(0, 0, doughnutCanvas.width, doughnutCanvas.height);
+    const implemented = Math.max(metrics.total - metrics.penalty, 0);
+    const gap = metrics.gapScore;
+    const sum = Math.max(implemented + gap, 1);
+    const doughnutWidth = doughnutSize.width / doughnutSize.scale;
+    const centerX = doughnutWidth / 2;
+    const centerY = 104;
+    const radius = 72;
+    let startAngle = -Math.PI / 2;
+    [implemented, gap].forEach((value, index) => {
+        const angle = (value / sum) * Math.PI * 2;
+        doughnutCtx.beginPath();
+        doughnutCtx.moveTo(centerX, centerY);
+        doughnutCtx.arc(centerX, centerY, radius, startAngle, startAngle + angle);
+        doughnutCtx.closePath();
+        doughnutCtx.fillStyle = index === 0 ? "#4f7f8f" : "#b85b5b";
+        doughnutCtx.fill();
+        startAngle += angle;
+    });
+    doughnutCtx.beginPath();
+    doughnutCtx.arc(centerX, centerY, 42, 0, Math.PI * 2);
+    doughnutCtx.fillStyle = "#fffdfa";
+    doughnutCtx.fill();
+    doughnutCtx.fillStyle = "#241f2f";
+    doughnutCtx.font = "bold 22px sans-serif";
+    doughnutCtx.textAlign = "center";
+    doughnutCtx.fillText(`${metrics.gapPercent}%`, centerX, centerY + 7);
+    doughnutCtx.textAlign = "left";
 };
 
 const renderDashboard = (result) => {

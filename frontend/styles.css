@@ -504,7 +504,8 @@ select:focus {
 .chartFrame canvas {
     width: 100%;
     height: 230px;
-    background: transparent;
+    display: block;
+    background: #fffdfa;
 }
 
 .chartFrame.emptyChart canvas {
