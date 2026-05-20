@@ -2,7 +2,7 @@ import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 import pool from "../config/db.js";
 
-const JWT_SECRET = "temporary_secret_key";
+const getJwtSecret = () => process.env.JWT_SECRET || "temporary_secret_key";
 
 export const registerUser = async ({ email, password }) => {
     const existingUser = await pool.query(
@@ -51,9 +51,9 @@ export const loginUser = async ({ email, password }) => {
             id: user.id,
             email: user.email
         },
-        JWT_SECRET,
+        getJwtSecret(),
         {
-            expiresIn: "1d"
+            expiresIn: process.env.JWT_EXPIRES_IN || "1d"
         }
     );
 
@@ -67,5 +67,5 @@ export const loginUser = async ({ email, password }) => {
 };
 
 export const verifyToken = (token) => {
-    return jwt.verify(token, JWT_SECRET);
+    return jwt.verify(token, getJwtSecret());
 };

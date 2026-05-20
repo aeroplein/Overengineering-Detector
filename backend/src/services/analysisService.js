@@ -6,13 +6,14 @@ import {
     generateFlags,
     generateRecommendations
 } from "./scoringService.js";
+import { generateAiExplanation } from "./aiExplanationService.js";
 
-export const analyzeProject = async (projectId) => {
+export const analyzeProject = async (projectId, userId) => {
     const projectResult = await pool.query(
         `SELECT *
          FROM projects
-         WHERE id = $1`,
-        [projectId]
+         WHERE id = $1 AND user_id = $2`,
+        [projectId, userId]
     );
     const project = projectResult.rows[0];
 
@@ -33,6 +34,13 @@ export const analyzeProject = async (projectId) => {
     const evaluation = generateEvaluation(scores.total_score);
     const flags = generateFlags(project, technologies, scores);
     const recommendations = generateRecommendations(flags);
+    const ai_explanation = generateAiExplanation({
+        project,
+        technologies,
+        scores,
+        flags,
+        recommendations
+    });
 
     const client = await pool.connect();
     try {
@@ -54,6 +62,7 @@ export const analyzeProject = async (projectId) => {
         );
 
         const analysis = analysisResult.rows[0];
+        analysis.ai_explanation = analysis.ai_explanation || ai_explanation;
 
         for (const flag of flags) {
             await client.query(
@@ -78,7 +87,8 @@ export const analyzeProject = async (projectId) => {
             scores,
             technologies,
             flags,
-            recommendations
+            recommendations,
+            ai_explanation
         };
     } catch (error) {
         await client.query('ROLLBACK');
@@ -88,12 +98,36 @@ export const analyzeProject = async (projectId) => {
     }
 };
 
-export const getAnalysisHistory = async (projectId) => {
+export const getAnalysisHistory = async (projectId, userId) => {
+    const projectResult = await pool.query(
+        `SELECT id
+         FROM projects
+         WHERE id = $1 AND user_id = $2`,
+        [projectId, userId]
+    );
+
+    if (!projectResult.rows[0]) {
+        return null;
+    }
+
     const result = await pool.query(
-        `SELECT *
-         FROM analysis_results
-         WHERE project_id = $1
-         ORDER BY created_at DESC`,
+        `SELECT ar.*,
+                COALESCE(
+                    JSON_AGG(DISTINCT JSONB_BUILD_OBJECT('flag_name', af.flag_name, 'severity', af.severity))
+                    FILTER (WHERE af.id IS NOT NULL),
+                    '[]'
+                ) AS flags,
+                COALESCE(
+                    JSON_AGG(DISTINCT r.recommendation_text)
+                    FILTER (WHERE r.id IS NOT NULL),
+                    '[]'
+                ) AS recommendations
+         FROM analysis_results ar
+         LEFT JOIN analysis_flags af ON af.analysis_id = ar.id
+         LEFT JOIN recommendations r ON r.analysis_id = ar.id
+         WHERE ar.project_id = $1
+         GROUP BY ar.id
+         ORDER BY ar.created_at DESC`,
         [projectId]
     );
 

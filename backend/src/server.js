@@ -1,7 +1,10 @@
 import express from "express";
+import path from "path";
+import { fileURLToPath } from "url";
 import pool from "./config/db.js";
 import projectRoutes from "./routes/projectRoutes.js";
 import analysisRoutes from "./routes/analysisRoutes.js";
+import { openApiSpec } from "./docs/openapiSpec.js";
 import authRoutes from "./routes/authRoutes.js";
 
 
@@ -9,7 +12,12 @@ import dotenv from "dotenv";
 dotenv.config();
 
 const app = express();
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+const frontendPath = path.resolve(__dirname, "../../frontend");
+
 app.use(express.json());
+app.use(express.static(frontendPath));
 
 app.use("/", authRoutes);
 app.use("/", projectRoutes);
@@ -20,6 +28,10 @@ app.get("/health", (req, res) => {
         status: "ok",
         message: "Server is running"
     });
+});
+
+app.get("/openapi.json", (req, res) => {
+    res.json(openApiSpec);
 });
 
 app.get("/db-test", async (req, res) => {

@@ -7,7 +7,7 @@ export const analyzeProjectController = async (req, res) => {
     try {
         const projectId = req.params.projectId;
 
-        const result = await analyzeProject(projectId);
+        const result = await analyzeProject(projectId, req.user.id);
 
         if (!result) {
             return res.status(404).json({ error: "Project not found." });
@@ -24,7 +24,11 @@ export const getAnalysisHistoryController = async (req, res) => {
     try {
         const projectId = req.params.projectId;
 
-        const history = await getAnalysisHistory(projectId);
+        const history = await getAnalysisHistory(projectId, req.user.id);
+
+        if (!history) {
+            return res.status(404).json({ error: "Project not found." });
+        }
 
         res.status(200).json(history);
     } catch (error) {

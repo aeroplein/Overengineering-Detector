@@ -2,16 +2,20 @@ import {
     registerUser,
     loginUser
 } from "../services/authService.js";
+import {
+    normalizeAuthPayload,
+    validateAuthPayload
+} from "../utils/validators.js";
 
 export const registerController = async (req, res) => {
     try {
-        const { email, password } = req.body;
+        const validationError = validateAuthPayload(req.body);
 
-        if (!email || !password) {
-            return res.status(400).json({ error: "Email and password are required." });
+        if (validationError) {
+            return res.status(400).json({ error: validationError });
         }
 
-        const user = await registerUser({ email, password });
+        const user = await registerUser(normalizeAuthPayload(req.body));
 
         if (!user) {
             return res.status(409).json({ error: "Email is already registered." });
@@ -29,13 +33,13 @@ export const registerController = async (req, res) => {
 
 export const loginController = async (req, res) => {
     try {
-        const { email, password } = req.body;
+        const validationError = validateAuthPayload(req.body);
 
-        if (!email || !password) {
-            return res.status(400).json({ error: "Email and password are required." });
+        if (validationError) {
+            return res.status(400).json({ error: validationError });
         }
 
-        const result = await loginUser({ email, password });
+        const result = await loginUser(normalizeAuthPayload(req.body));
 
         if (!result) {
             return res.status(401).json({ error: "Invalid email or password." });

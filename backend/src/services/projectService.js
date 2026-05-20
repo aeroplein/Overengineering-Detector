@@ -1,13 +1,13 @@
 import pool from "../config/db.js";
 
-export const createProject = async (projectData) => {
-    const { user_id = null, name, daily_users, scale, visibility = "private" } = projectData;
+export const createProject = async (projectData, userId) => {
+    const { name, daily_users, scale, visibility = "private" } = projectData;
 
     const result = await pool.query(
         `INSERT INTO projects (user_id, name, daily_users, scale, visibility)
          VALUES ($1, $2, $3, $4, $5)
          RETURNING *`,
-        [user_id, name, daily_users, scale, visibility]
+        [userId, name, daily_users, scale, visibility]
     );
 
     return result.rows[0];
@@ -25,17 +25,28 @@ export const getAllProjects = async (userId) => {
     return result.rows;
 };
 
-export const getProjectById = async (id) => {
+export const getAllTechnologies = async () => {
+    const result = await pool.query(
+        `SELECT MIN(id) AS id, name, category, complexity_weight
+         FROM technologies
+         GROUP BY LOWER(name), LOWER(category), name, category, complexity_weight
+         ORDER BY category ASC, name ASC`
+    );
+
+    return result.rows;
+};
+
+export const getProjectById = async (id, userId) => {
     const result = await pool.query(
         `SELECT *
          FROM projects
-         WHERE id = $1`,
-        [id]
+         WHERE id = $1 AND user_id = $2`,
+        [id, userId]
     );
     return result.rows[0];
 };
 
-export const updateProject = async (id, projectData) => {
+export const updateProject = async (id, projectData, userId) => {
     const { name, daily_users, scale, visibility } = projectData;
     //extracts values from the incoming payload so they can be secureşy mapped to the placeholder arrays.
     /**
@@ -64,42 +75,89 @@ export const updateProject = async (id, projectData) => {
     const result = await pool.query(
         `UPDATE projects
          SET name = $1, daily_users = $2, scale = $3, visibility = $4
-         WHERE id = $5
+         WHERE id = $5 AND user_id = $6
          RETURNING *`,
-        [name, daily_users, scale, visibility, id]
+        [name, daily_users, scale, visibility, id, userId]
     );
     return result.rows[0];
 };
 
-export const deleteProject = async (id) => {
+export const deleteProject = async (id, userId) => {
     const result = await pool.query(
         `DELETE FROM projects
-          WHERE id = $1
+          WHERE id = $1 AND user_id = $2
           RETURNING *`,
-        [id]
+        [id, userId]
     );
     return result.rows[0];
 };
 
-export const addTechnologiesToProject = async (projectId, technologyIds) => {
-    const placeholders = technologyIds.map((_, i) => `($1, $${i + 2})`).join(", ");
-    const query = `
-        INSERT INTO project_technologies (project_id, technology_id)
-        VALUES ${placeholders}
-        ON CONFLICT (project_id, technology_id) DO NOTHING
-        RETURNING *;
-    `;
+export const addTechnologiesToProject = async (projectId, technologyIds, userId) => {
+    const project = await getProjectById(projectId, userId);
+    if (!project) {
+        return null;
+    }
 
-    const result = await pool.query(query, [projectId, ...technologyIds]);
-    return result.rows;
+    const existingTechnologies = await pool.query(
+        `SELECT id
+         FROM technologies
+         WHERE id = ANY($1::int[])`,
+        [technologyIds]
+    );
+    const existingTechnologyIds = new Set(existingTechnologies.rows.map((technology) => technology.id));
+    const unknownTechnologyIds = technologyIds.filter((technologyId) => !existingTechnologyIds.has(technologyId));
+
+    if (unknownTechnologyIds.length > 0) {
+        return {
+            technologies: [],
+            unknownTechnologyIds
+        };
+    }
+
+    const client = await pool.connect();
+    try {
+        await client.query("BEGIN");
+        await client.query(
+            `DELETE FROM project_technologies
+             WHERE project_id = $1`,
+            [projectId]
+        );
+
+        if (technologyIds.length > 0) {
+            const placeholders = technologyIds.map((_, i) => `($1, $${i + 2})`).join(", ");
+            await client.query(
+                `INSERT INTO project_technologies (project_id, technology_id)
+                 VALUES ${placeholders}`,
+                [projectId, ...technologyIds]
+            );
+        }
+
+        await client.query("COMMIT");
+    } catch (error) {
+        await client.query("ROLLBACK");
+        throw error;
+    } finally {
+        client.release();
+    }
+
+    return {
+        technologies: await getProjectTechnologies(projectId, userId),
+        unknownTechnologyIds: []
+    };
 };
 
-export const getProjectTechnologies = async (projectId) => {
+export const getProjectTechnologies = async (projectId, userId) => {
+    const project = await getProjectById(projectId, userId);
+    if (!project) {
+        return null;
+    }
+
     const result = await pool.query(
         `SELECT t.* 
          FROM technologies t
          JOIN project_technologies pt ON t.id = pt.technology_id
-         WHERE pt.project_id = $1`,
+         WHERE pt.project_id = $1
+         ORDER BY t.category ASC, t.name ASC`,
         [projectId]
     );
     return result.rows;

@@ -1,5 +1,7 @@
 import jwt from "jsonwebtoken";
 
+const getJwtSecret = () => process.env.JWT_SECRET || "temporary_secret_key";
+
 export const authenticateToken = (req, res, next) => {
     const authHeader = req.headers.authorization;
 
@@ -7,14 +9,14 @@ export const authenticateToken = (req, res, next) => {
         return res.status(401).json({ error: "Authorization token is required." });
     }
 
-    const token = authHeader.split(" ")[1];
+    const [scheme, token] = authHeader.split(" ");
 
-    if (!token) {
+    if (scheme !== "Bearer" || !token) {
         return res.status(401).json({ error: "Invalid authorization format." });
     }
 
     try {
-        const decoded = jwt.verify(token, process.env.JWT_SECRET);
+        const decoded = jwt.verify(token, getJwtSecret());
         req.user = decoded;
         next();
     } catch (error) {
