@@ -24,6 +24,7 @@ const els = {
     scoreDashboard: document.querySelector("#scoreDashboard"),
     overallScore: document.querySelector("#overallScore"),
     necessaryComplexity: document.querySelector("#necessaryComplexity"),
+    complexityGapLabel: document.querySelector("#complexityGapLabel"),
     overengineeringPercent: document.querySelector("#overengineeringPercent"),
     riskLevel: document.querySelector("#riskLevel"),
     scoreBreakdownFrame: document.querySelector("#scoreBreakdownFrame"),
@@ -178,18 +179,26 @@ const renderProjects = () => {
         return;
     }
 
-    els.projectList.innerHTML = state.projects.map((project) => `
+    els.projectList.innerHTML = state.projects.map((project) => {
+        const technologies = project.technologies || [];
+        const techStack = technologies.length
+            ? technologies.map((technology) => technology.name).join(", ")
+            : "No technologies selected";
+
+        return `
         <article class="projectCard ${project.id === state.selectedProjectId ? "active" : ""}">
             <button class="projectButton" data-project-id="${project.id}" type="button">
                 <strong>${escapeHtml(project.name)}</strong>
                 <span class="projectMeta">${escapeHtml(project.scale)} / ${escapeHtml(project.daily_users)} daily users / ${escapeHtml(project.visibility)}</span>
+                <span class="projectTechStack">${escapeHtml(techStack)}</span>
             </button>
             <div class="projectActions">
                 <button class="miniButton" data-action="edit" data-project-id="${project.id}" type="button">Edit</button>
                 <button class="miniButton danger" data-action="delete" data-project-id="${project.id}" type="button">Delete</button>
             </div>
         </article>
-    `).join("");
+    `;
+    }).join("");
 };
 
 const renderTechnologies = () => {
@@ -216,6 +225,35 @@ const setTechnologySelection = (selectedTechnologies) => {
     });
 };
 
+const getCheckedTechnologyIds = () => [...els.technologyList.querySelectorAll("input:checked")]
+    .map((input) => Number(input.value));
+
+const updateSelectedProjectTechnologies = (technologies) => {
+    state.projects = state.projects.map((project) => {
+        if (project.id !== state.selectedProjectId) {
+            return project;
+        }
+
+        return {
+            ...project,
+            technologies
+        };
+    });
+    renderProjects();
+    setTechnologySelection(technologies);
+};
+
+const saveSelectedTechnologies = async () => {
+    const technologyIds = getCheckedTechnologyIds();
+    const technologies = await api(`/projects/${state.selectedProjectId}/technologies`, {
+        method: "POST",
+        body: JSON.stringify({ technologyIds })
+    });
+
+    updateSelectedProjectTechnologies(technologies);
+    return technologies;
+};
+
 const getRiskLevel = ({ total_score }, flags) => {
     if (flags.some((flag) => flag.severity === "HIGH") || total_score >= 55) {
         return "High";
@@ -231,15 +269,22 @@ const getRiskLevel = ({ total_score }, flags) => {
 const calculateDashboardMetrics = (result) => {
     const scores = result.scores;
     const penalty = Number(scores.penalty_score || 0);
+    const underengineering = Number(scores.underengineering_score || 0);
     const total = Number(scores.total_score || 0);
-    const necessary = Math.max(total - penalty, 0);
-    const overengineering = total === 0 ? 0 : Math.round((penalty / total) * 100);
+    const necessary = Number(scores.necessary_complexity || Math.max(total - penalty, 0));
+    const direction = scores.complexity_direction || (underengineering > penalty ? "underengineering" : "overengineering");
+    const gapScore = direction === "underengineering" ? underengineering : penalty;
+    const denominator = Math.max(necessary, total, gapScore, 1);
+    const gapPercent = Math.round((gapScore / denominator) * 100);
 
     return {
         total,
         necessary,
         penalty,
-        overengineering,
+        underengineering,
+        gapScore,
+        gapPercent,
+        direction,
         riskLevel: getRiskLevel(scores, result.flags)
     };
 };
@@ -251,10 +296,10 @@ const renderCharts = (result, metrics) => {
     overengineeringChart?.destroy();
     scoreBreakdownChart = null;
     overengineeringChart = null;
-    els.scoreBreakdownFrame.classList.toggle("emptyChart", metrics.total === 0);
-    els.overengineeringFrame.classList.toggle("emptyChart", metrics.total === 0);
+    els.scoreBreakdownFrame.classList.toggle("emptyChart", metrics.total === 0 && metrics.gapScore === 0);
+    els.overengineeringFrame.classList.toggle("emptyChart", metrics.total === 0 && metrics.gapScore === 0);
 
-    if (metrics.total === 0) {
+    if (metrics.total === 0 && metrics.gapScore === 0) {
         return;
     }
 
@@ -265,14 +310,19 @@ const renderCharts = (result, metrics) => {
     scoreBreakdownChart = new Chart(els.scoreBreakdownChart, {
         type: "bar",
         data: {
-            labels: ["Frontend", "Backend", "Infrastructure", "Penalty"],
+            labels: [
+                "Frontend",
+                "Backend",
+                "Infrastructure",
+                metrics.direction === "underengineering" ? "Underengineering" : "Overengineering"
+            ],
             datasets: [{
                 label: "Score",
                 data: [
                     result.scores.frontend_score,
                     result.scores.backend_score,
                     result.scores.infrastructure_score,
-                    result.scores.penalty_score || 0
+                    metrics.direction === "underengineering" ? metrics.underengineering : metrics.penalty
                 ],
                 backgroundColor: ["#4f7f8f", "#7d6ab3", "#b48a4c", "#b85b5b"],
                 borderRadius: 8
@@ -296,9 +346,15 @@ const renderCharts = (result, metrics) => {
     overengineeringChart = new Chart(els.overengineeringChart, {
         type: "doughnut",
         data: {
-            labels: ["Necessary complexity", "Overengineering"],
+            labels: [
+                "Implemented complexity",
+                metrics.direction === "underengineering" ? "Underengineering" : "Overengineering"
+            ],
             datasets: [{
-                data: [metrics.necessary, metrics.penalty],
+                data: [
+                    Math.max(metrics.total - metrics.penalty, 0),
+                    metrics.gapScore
+                ],
                 backgroundColor: ["#4f7f8f", "#b85b5b"],
                 borderColor: "#fffdfa",
                 borderWidth: 4
@@ -323,7 +379,9 @@ const renderDashboard = (result) => {
     els.scoreDashboard.classList.remove("hidden");
     els.overallScore.textContent = metrics.total;
     els.necessaryComplexity.textContent = metrics.necessary;
-    els.overengineeringPercent.textContent = `${metrics.overengineering}%`;
+    els.complexityGapLabel.textContent =
+        metrics.direction === "underengineering" ? "Underengineering" : "Overengineering";
+    els.overengineeringPercent.textContent = `${metrics.gapPercent}%`;
     els.riskLevel.textContent = metrics.riskLevel;
     els.riskLevel.dataset.risk = metrics.riskLevel.toLowerCase();
 
@@ -400,11 +458,17 @@ const loadSelectedProjectDetails = async () => {
         return;
     }
 
+    const selectedProject = state.projects.find((project) => project.id === state.selectedProjectId);
+    if (selectedProject?.technologies) {
+        setTechnologySelection(selectedProject.technologies);
+    }
+
     const [selectedTechnologies, history] = await Promise.all([
         api(`/projects/${state.selectedProjectId}/technologies`),
         api(`/analysis/${state.selectedProjectId}/history`)
     ]);
     setTechnologySelection(selectedTechnologies);
+    updateSelectedProjectTechnologies(selectedTechnologies);
     renderAnalysisHistory(history);
 };
 
@@ -603,15 +667,8 @@ els.saveTechnologiesButton.addEventListener("click", async () => {
         return;
     }
 
-    const technologyIds = [...els.technologyList.querySelectorAll("input:checked")]
-        .map((input) => Number(input.value));
-
     await withBusyButton(els.saveTechnologiesButton, "Saving...", async () => {
-        await api(`/projects/${state.selectedProjectId}/technologies`, {
-            method: "POST",
-            body: JSON.stringify({ technologyIds })
-        });
-        await loadSelectedProjectDetails();
+        await saveSelectedTechnologies();
         setMessage("Technologies saved.", false);
     }).catch((error) => {
         setMessage(error.message);
@@ -625,12 +682,14 @@ els.analyzeButton.addEventListener("click", async () => {
     }
 
     await withBusyButton(els.analyzeButton, "Analyzing...", async () => {
+        await saveSelectedTechnologies();
         const result = await api(`/analysis/${state.selectedProjectId}`, {
             method: "POST"
         });
 
         renderAnalysis(result);
-        await loadSelectedProjectDetails();
+        const history = await api(`/analysis/${state.selectedProjectId}/history`);
+        renderAnalysisHistory(history);
         setMessage("Analysis complete.", false);
     }).catch((error) => {
         setMessage(error.message);

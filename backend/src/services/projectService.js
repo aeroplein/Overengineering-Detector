@@ -15,10 +15,25 @@ export const createProject = async (projectData, userId) => {
 
 export const getAllProjects = async (userId) => {
     const result = await pool.query(
-        `SELECT *
-         FROM projects
-         WHERE user_id = $1
-         ORDER BY created_at DESC`,
+        `SELECT p.*,
+                COALESCE(
+                    JSON_AGG(
+                        JSONB_BUILD_OBJECT(
+                            'id', t.id,
+                            'name', t.name,
+                            'category', t.category,
+                            'complexity_weight', t.complexity_weight
+                        )
+                        ORDER BY t.category ASC, t.name ASC
+                    ) FILTER (WHERE t.id IS NOT NULL),
+                    '[]'
+                ) AS technologies
+         FROM projects p
+         LEFT JOIN project_technologies pt ON pt.project_id = p.id
+         LEFT JOIN technologies t ON t.id = pt.technology_id
+         WHERE p.user_id = $1
+         GROUP BY p.id
+         ORDER BY p.created_at DESC`,
         [userId]
     );
 

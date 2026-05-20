@@ -4,6 +4,24 @@ const infrastructureCategories = ["devops", "cloud"];
 const heavyInfrastructureTools = ["kubernetes", "aws", "gcp", "azure", "redis"];
 const enterpriseTools = ["kubernetes", "spring boot", "nestjs", "aws", "gcp", "azure"];
 
+const requiredComplexityByScale = {
+    Personal: 0,
+    Startup: 12,
+    Enterprise: 25
+};
+
+const getRequiredComplexity = (project) => {
+    let requiredComplexity = requiredComplexityByScale[project.scale] || 0;
+
+    if (project.daily_users >= 10000) {
+        requiredComplexity += 12;
+    } else if (project.daily_users >= 1000) {
+        requiredComplexity += 6;
+    }
+
+    return requiredComplexity;
+};
+
 export const calculateScores = (project, technologies) => {
     let frontend_score = 0;
     let backend_score = 0;
@@ -46,26 +64,43 @@ export const calculateScores = (project, technologies) => {
         penalty_score += 6;
     }
 
-    const total_score =
-        frontend_score + backend_score + infrastructure_score + penalty_score;
+    const stack_score = frontend_score + backend_score + infrastructure_score;
+    const necessary_complexity = getRequiredComplexity(project);
+    const underengineering_score = Math.max(necessary_complexity - stack_score, 0);
+    const total_score = stack_score + penalty_score;
+    const complexity_direction =
+        underengineering_score > penalty_score ? "underengineering" : "overengineering";
+
     return {
         frontend_score,
         backend_score,
         infrastructure_score,
         penalty_score,
-        total_score
+        underengineering_score,
+        necessary_complexity,
+        stack_score,
+        total_score,
+        complexity_direction
     };
 
 };
 
-export const generateEvaluation = (total_score) => {
-    if (total_score >= 55) {
+export const generateEvaluation = (scoresOrTotal) => {
+    const scores = typeof scoresOrTotal === "number" ? { total_score: scoresOrTotal } : scoresOrTotal;
+
+    if (scores.underengineering_score >= 20) {
+        return "Underengineered for the project scale.";
+    }
+    if (scores.underengineering_score >= 10) {
+        return "Possibly underengineered.";
+    }
+    if (scores.total_score >= 55) {
         return "Highly overengineered.";
     }
-    if (total_score >= 35) {
+    if (scores.total_score >= 35) {
         return "Possibly overengineered.";
     }
-    if (total_score >= 20) {
+    if (scores.total_score >= 20) {
         return "Moderately complex but acceptable.";
     }
     return "Reasonable stack.";
@@ -131,6 +166,17 @@ export const generateFlags = (project, technologies, scores) => {
             severity: "HIGH"
         })
     }
+    if (scores.underengineering_score >= 20) {
+        flags.push({
+            flag_name: "UNDERENGINEERED_FOR_SCALE",
+            severity: "HIGH"
+        });
+    } else if (scores.underengineering_score >= 10) {
+        flags.push({
+            flag_name: "THIN_STACK_FOR_SCALE",
+            severity: "MEDIUM"
+        });
+    }
     return flags;
 };
 
@@ -141,7 +187,9 @@ const recommendationMessages = {
     PREMATURE_OPTIMIZATION: "Delay Kubernetes, Redis, or cloud complexity until user traffic requires it.",
     FRONTEND_FRAMEWORK_OVERLOAD: "Avoid using multiple frontend frameworks in one small project.",
     INFRASTRUCTURE_OVERLOAD: "For personal projects, start with minimal deployment infrastructure.",
-    CONTEXT_MISMATCH: "Reconsider whether the stack matches the project's current scale and user count."
+    CONTEXT_MISMATCH: "Reconsider whether the stack matches the project's current scale and user count.",
+    UNDERENGINEERED_FOR_SCALE: "Add enough backend, database, deployment, and reliability tooling for the selected project scale.",
+    THIN_STACK_FOR_SCALE: "Consider adding the minimum supporting technologies expected for this scale."
 };
 
 export const generateRecommendations = (flags) => {

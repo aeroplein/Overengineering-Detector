@@ -21,10 +21,13 @@ export const generateAiExplanation = ({ project, technologies, scores, flags, re
     try {
         const techCount = technologies.length;
         const topRecommendation = recommendations[0] || "Keep the current stack focused on what the project needs now.";
+        const gapSummary = scores.complexity_direction === "underengineering"
+            ? `underengineering gap ${scores.underengineering_score}`
+            : `overengineering penalty ${scores.penalty_score}`;
 
         return [
             `${project.name} is a ${project.scale.toLowerCase()} project with ${project.daily_users} expected daily users and ${techCount} selected technologies.`,
-            `The deterministic score is ${scores.total_score}, driven by frontend ${scores.frontend_score}, backend ${scores.backend_score}, infrastructure ${scores.infrastructure_score}, and penalty ${scores.penalty_score}.`,
+            `The deterministic score is ${scores.total_score}, driven by frontend ${scores.frontend_score}, backend ${scores.backend_score}, infrastructure ${scores.infrastructure_score}, and ${gapSummary}.`,
             `Main simplification signal: ${labelFlags(flags)}.`,
             `Suggestion: ${topRecommendation}`
         ].join(" ");

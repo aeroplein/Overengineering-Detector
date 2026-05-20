@@ -38,6 +38,19 @@ test("generateEvaluation maps total score bands", () => {
     assert.equal(generateEvaluation(10), "Reasonable stack.");
 });
 
+test("calculateScores identifies enterprise projects with too little stack as underengineered", () => {
+    const scores = calculateScores({
+        name: "Enterprise Portal",
+        scale: "Enterprise",
+        daily_users: 50
+    }, []);
+
+    assert.equal(scores.necessary_complexity, 25);
+    assert.equal(scores.underengineering_score, 25);
+    assert.equal(scores.complexity_direction, "underengineering");
+    assert.equal(generateEvaluation(scores), "Underengineered for the project scale.");
+});
+
 test("generateFlags identifies high-risk small-project complexity", () => {
     const technologies = [
         { name: "React", category: "Frontend", complexity_weight: 6 },

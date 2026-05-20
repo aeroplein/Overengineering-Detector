@@ -31,7 +31,7 @@ export const analyzeProject = async (projectId, userId) => {
     const technologies = technologiesResult.rows;
 
     const scores = calculateScores(project, technologies);
-    const evaluation = generateEvaluation(scores.total_score);
+    const evaluation = generateEvaluation(scores);
     const flags = generateFlags(project, technologies, scores);
     const recommendations = generateRecommendations(flags);
     const ai_explanation = generateAiExplanation({

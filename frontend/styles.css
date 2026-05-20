@@ -315,7 +315,8 @@ select:focus {
 }
 
 .projectButton strong,
-.projectMeta {
+.projectMeta,
+.projectTechStack {
     display: block;
 }
 
@@ -361,6 +362,13 @@ select:focus {
 .techMeta {
     margin-top: 4px;
     font-size: 12px;
+}
+
+.projectTechStack {
+    margin-top: 8px;
+    color: #514760;
+    font-size: 12px;
+    line-height: 1.35;
 }
 
 .technologyList {
