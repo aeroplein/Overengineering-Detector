@@ -1,4 +1,5 @@
 import pool from "../config/db.js";
+import { getActiveTechnologies } from "./technologyService.js";
 
 export const createProject = async (projectData, userId) => {
     const { name, daily_users, scale, visibility = "private" } = projectData;
@@ -41,14 +42,7 @@ export const getAllProjects = async (userId) => {
 };
 
 export const getAllTechnologies = async () => {
-    const result = await pool.query(
-        `SELECT MIN(id) AS id, name, category, complexity_weight
-         FROM technologies
-         GROUP BY LOWER(name), LOWER(category), name, category, complexity_weight
-         ORDER BY category ASC, name ASC`
-    );
-
-    return result.rows;
+    return getActiveTechnologies();
 };
 
 export const getProjectById = async (id, userId) => {

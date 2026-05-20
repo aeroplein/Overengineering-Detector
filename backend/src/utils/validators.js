@@ -86,3 +86,51 @@ export const validateTechnologyIds = (technologyIds) => {
 };
 
 export const normalizeTechnologyIds = (technologyIds) => technologyIds.map((id) => Number(id));
+
+export const validateTechnologyPayload = ({
+    name,
+    category,
+    complexity_weight,
+    docs_url = ""
+} = {}) => {
+    if (!name || String(name).trim().length < 2) {
+        return "Technology name must be at least 2 characters.";
+    }
+
+    if (!category || String(category).trim().length < 2) {
+        return "Technology category must be at least 2 characters.";
+    }
+
+    const weight = Number(complexity_weight);
+    if (!Number.isInteger(weight) || weight < 1 || weight > 10) {
+        return "Complexity weight must be a whole number between 1 and 10.";
+    }
+
+    if (docs_url && !/^https?:\/\/\S+$/i.test(String(docs_url))) {
+        return "Documentation URL must start with http:// or https://.";
+    }
+
+    return null;
+};
+
+export const normalizeTechnologyPayload = ({
+    name,
+    category,
+    complexity_weight,
+    description = "",
+    best_for = "",
+    risk_notes = "",
+    alternatives = "",
+    docs_url = "",
+    is_active = true
+}) => ({
+    name: String(name).trim(),
+    category: String(category).trim(),
+    complexity_weight: Number(complexity_weight),
+    description: String(description || "").trim(),
+    best_for: String(best_for || "").trim(),
+    risk_notes: String(risk_notes || "").trim(),
+    alternatives: String(alternatives || "").trim(),
+    docs_url: String(docs_url || "").trim(),
+    is_active: Boolean(is_active)
+});

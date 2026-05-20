@@ -23,3 +23,11 @@ export const authenticateToken = (req, res, next) => {
         return res.status(403).json({ error: "Invalid or expired token." });
     }
 };
+
+export const authorizeAdmin = (req, res, next) => {
+    if (req.user?.role !== "admin") {
+        return res.status(403).json({ error: "Admin access is required." });
+    }
+
+    next();
+};

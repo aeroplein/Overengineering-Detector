@@ -203,3 +203,51 @@ export const generateRecommendations = (flags) => {
 
     return recommendations;
 };
+
+export const generateRadar = (scores) => ({
+    frontend: scores.frontend_score,
+    backend: scores.backend_score,
+    infrastructure: scores.infrastructure_score,
+    overengineering: scores.penalty_score,
+    underengineering: scores.underengineering_score
+});
+
+export const generateBadge = (scores, flags) => {
+    if (scores.underengineering_score >= 20) {
+        return {
+            label: "Underengineered",
+            tone: "danger",
+            description: "The stack is too thin for the selected scale."
+        };
+    }
+
+    if (flags.some((flag) => flag.severity === "HIGH")) {
+        return {
+            label: "High Risk",
+            tone: "danger",
+            description: "The stack has high-severity architecture risk signals."
+        };
+    }
+
+    if (scores.penalty_score >= 10 || scores.total_score >= 55) {
+        return {
+            label: "Overengineered",
+            tone: "warning",
+            description: "The stack is carrying more complexity than the context needs."
+        };
+    }
+
+    if (scores.total_score >= 20) {
+        return {
+            label: "Balanced",
+            tone: "balanced",
+            description: "The stack has meaningful complexity but stays within a practical range."
+        };
+    }
+
+    return {
+        label: "Lean",
+        tone: "success",
+        description: "The stack is compact and appropriate for the current context."
+    };
+};

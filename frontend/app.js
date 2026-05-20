@@ -3,9 +3,13 @@ const state = {
     user: JSON.parse(localStorage.getItem("user") || "null"),
     projects: [],
     technologies: [],
+    adminTechnologies: [],
+    knowledgeTechnologies: [],
     selectedProjectId: null,
     editingProjectId: null,
-    pendingDeleteProject: null
+    pendingDeleteProject: null,
+    lastAnalysis: null,
+    lastDashboard: null
 };
 
 const els = {
@@ -21,6 +25,12 @@ const els = {
     cancelEditButton: document.querySelector("#cancelEditButton"),
     projectList: document.querySelector("#projectList"),
     technologyList: document.querySelector("#technologyList"),
+    adminPanel: document.querySelector("#adminPanel"),
+    technologyAdminForm: document.querySelector("#technologyAdminForm"),
+    resetTechnologyAdminButton: document.querySelector("#resetTechnologyAdminButton"),
+    adminTechnologyList: document.querySelector("#adminTechnologyList"),
+    refreshKnowledgeButton: document.querySelector("#refreshKnowledgeButton"),
+    knowledgeList: document.querySelector("#knowledgeList"),
     scoreDashboard: document.querySelector("#scoreDashboard"),
     overallScore: document.querySelector("#overallScore"),
     necessaryComplexity: document.querySelector("#necessaryComplexity"),
@@ -30,6 +40,15 @@ const els = {
     scoreBreakdownFrame: document.querySelector("#scoreBreakdownFrame"),
     overengineeringFrame: document.querySelector("#overengineeringFrame"),
     analysisResult: document.querySelector("#analysisResult"),
+    dashboardDetails: document.querySelector("#dashboardDetails"),
+    badgeBox: document.querySelector("#badgeBox"),
+    suggestionList: document.querySelector("#suggestionList"),
+    timelineList: document.querySelector("#timelineList"),
+    whatIfForm: document.querySelector("#whatIfForm"),
+    whatIfResult: document.querySelector("#whatIfResult"),
+    comparisonForm: document.querySelector("#comparisonForm"),
+    comparisonResult: document.querySelector("#comparisonResult"),
+    exportReportButton: document.querySelector("#exportReportButton"),
     analysisHistory: document.querySelector("#analysisHistory"),
     message: document.querySelector("#message"),
     session: document.querySelector(".session"),
@@ -113,9 +132,13 @@ const clearSession = () => {
     state.user = null;
     state.projects = [];
     state.technologies = [];
+    state.adminTechnologies = [];
+    state.knowledgeTechnologies = [];
     state.selectedProjectId = null;
     state.editingProjectId = null;
     state.pendingDeleteProject = null;
+    state.lastAnalysis = null;
+    state.lastDashboard = null;
     localStorage.removeItem("token");
     localStorage.removeItem("user");
     resetAnalysisView();
@@ -127,6 +150,7 @@ const renderSession = () => {
     els.appView.classList.toggle("hidden", !signedIn);
     els.session.classList.toggle("hidden", !signedIn);
     els.logoutButton.classList.toggle("hidden", !signedIn);
+    els.adminPanel.classList.toggle("hidden", state.user?.role !== "admin");
     els.sessionEmail.textContent = state.user?.email || "";
 };
 
@@ -211,6 +235,82 @@ const renderTechnologies = () => {
             </span>
         </label>
     `).join("");
+};
+
+const renderAdminTechnologies = () => {
+    if (state.user?.role !== "admin") {
+        return;
+    }
+
+    if (state.adminTechnologies.length === 0) {
+        els.adminTechnologyList.innerHTML = `<p class="muted">No technologies found.</p>`;
+        return;
+    }
+
+    els.adminTechnologyList.innerHTML = state.adminTechnologies.map((technology) => `
+        <article class="adminTechCard ${technology.is_active ? "" : "inactive"}">
+            <div>
+                <strong>${escapeHtml(technology.name)}</strong>
+                <span>${escapeHtml(technology.category)} / weight ${escapeHtml(technology.complexity_weight)} / ${technology.is_active ? "active" : "inactive"}</span>
+            </div>
+            <div class="projectActions">
+                <button class="miniButton" data-admin-action="edit" data-technology-id="${technology.id}" type="button">Edit</button>
+                <button class="miniButton danger" data-admin-action="delete" data-technology-id="${technology.id}" type="button">Soft delete</button>
+            </div>
+        </article>
+    `).join("");
+};
+
+const renderKnowledgeBase = () => {
+    if (state.knowledgeTechnologies.length === 0) {
+        els.knowledgeList.innerHTML = `<p class="muted">No knowledge entries yet.</p>`;
+        return;
+    }
+
+    els.knowledgeList.innerHTML = state.knowledgeTechnologies.map((technology) => `
+        <article class="knowledgeCard">
+            <strong>${escapeHtml(technology.name)}</strong>
+            <span>${escapeHtml(technology.category)} / weight ${escapeHtml(technology.complexity_weight)}</span>
+            <p>${escapeHtml(technology.description || "No description added yet.")}</p>
+            <p><b>Best for:</b> ${escapeHtml(technology.best_for || "Not specified.")}</p>
+            <p><b>Risks:</b> ${escapeHtml(technology.risk_notes || "No risk notes.")}</p>
+            <p><b>Alternatives:</b> ${escapeHtml(technology.alternatives || "No alternatives listed.")}</p>
+            ${technology.docs_url ? `<a href="${escapeHtml(technology.docs_url)}" target="_blank" rel="noreferrer">Docs</a>` : ""}
+        </article>
+    `).join("");
+};
+
+const loadAdminTechnologies = async () => {
+    if (state.user?.role !== "admin") {
+        return;
+    }
+
+    state.adminTechnologies = await api("/admin/technologies");
+    renderAdminTechnologies();
+};
+
+const loadKnowledgeBase = async () => {
+    state.knowledgeTechnologies = await api("/knowledge/technologies");
+    renderKnowledgeBase();
+};
+
+const resetTechnologyAdminForm = () => {
+    els.technologyAdminForm.reset();
+    els.technologyAdminForm.elements.id.value = "";
+    els.technologyAdminForm.elements.is_active.checked = true;
+};
+
+const setTechnologyAdminForm = (technology) => {
+    els.technologyAdminForm.elements.id.value = technology.id;
+    els.technologyAdminForm.elements.name.value = technology.name;
+    els.technologyAdminForm.elements.category.value = technology.category;
+    els.technologyAdminForm.elements.complexity_weight.value = technology.complexity_weight;
+    els.technologyAdminForm.elements.docs_url.value = technology.docs_url || "";
+    els.technologyAdminForm.elements.description.value = technology.description || "";
+    els.technologyAdminForm.elements.best_for.value = technology.best_for || "";
+    els.technologyAdminForm.elements.risk_notes.value = technology.risk_notes || "";
+    els.technologyAdminForm.elements.alternatives.value = technology.alternatives || "";
+    els.technologyAdminForm.elements.is_active.checked = Boolean(technology.is_active);
 };
 
 const setTechnologySelection = (selectedTechnologies) => {
@@ -355,15 +455,51 @@ const renderDashboard = (result) => {
     renderCharts(result, metrics);
 };
 
+const renderDashboardDetails = (dashboard) => {
+    state.lastDashboard = dashboard;
+    els.dashboardDetails.classList.remove("hidden");
+    const badge = dashboard.badge || {};
+    els.badgeBox.innerHTML = `
+        <strong class="complexityBadge ${escapeHtml(badge.tone || "balanced")}">${escapeHtml(badge.label || "No badge")}</strong>
+        <p>${escapeHtml(badge.description || "Run analysis to generate a badge.")}</p>
+    `;
+    els.suggestionList.innerHTML = (dashboard.suggestions || []).map((item) => `
+        <article class="miniInfo">
+            <strong>${escapeHtml(item.technology)}</strong>
+            <p>${escapeHtml(item.suggestion)}</p>
+        </article>
+    `).join("") || `<p class="muted">No suggestions yet.</p>`;
+    els.timelineList.innerHTML = (dashboard.timeline || []).slice(0, 6).map((item) => `
+        <article class="timelineItem">
+            <strong>${escapeHtml(item.total_score)}</strong>
+            <span>${escapeHtml(new Date(item.created_at).toLocaleString())} / ${escapeHtml(item.evaluation)}</span>
+        </article>
+    `).join("") || `<p class="muted">No timeline yet.</p>`;
+};
+
+const loadDashboardDetails = async () => {
+    if (!state.selectedProjectId) {
+        return null;
+    }
+
+    const dashboard = await api(`/analysis/${state.selectedProjectId}/dashboard`);
+    renderDashboardDetails(dashboard);
+    return dashboard;
+};
+
 const resetAnalysisView = (message = "Select a project and run analysis.") => {
     els.scoreDashboard.classList.add("hidden");
     els.analysisResult.classList.add("muted");
     els.analysisResult.textContent = message;
     els.scoreBreakdownFrame.innerHTML = "";
     els.overengineeringFrame.innerHTML = "";
+    els.dashboardDetails.classList.add("hidden");
+    state.lastAnalysis = null;
+    state.lastDashboard = null;
 };
 
 const renderAnalysis = (result) => {
+    state.lastAnalysis = result;
     renderDashboard(result);
     els.analysisResult.classList.remove("muted");
     els.analysisResult.innerHTML = `
@@ -407,11 +543,21 @@ const loadProjects = async () => {
         state.selectedProjectId = state.projects[0].id;
     }
     renderProjects();
+    renderComparisonOptions();
 };
 
 const loadTechnologies = async () => {
     state.technologies = await api("/technologies");
     renderTechnologies();
+    renderComparisonOptions();
+};
+
+const renderComparisonOptions = () => {
+    const select = els.comparisonForm.elements.rightProjectId;
+    const options = state.projects
+        .filter((project) => project.id !== state.selectedProjectId)
+        .map((project) => `<option value="${project.id}">${escapeHtml(project.name)}</option>`);
+    select.innerHTML = options.join("");
 };
 
 const loadSelectedProjectDetails = async () => {
@@ -435,6 +581,8 @@ const loadSelectedProjectDetails = async () => {
     setTechnologySelection(selectedTechnologies);
     updateSelectedProjectTechnologies(selectedTechnologies);
     renderAnalysisHistory(history);
+    renderComparisonOptions();
+    await loadDashboardDetails();
 };
 
 const bootstrapApp = async () => {
@@ -446,6 +594,7 @@ const bootstrapApp = async () => {
 
     try {
         await Promise.all([loadProjects(), loadTechnologies()]);
+        await Promise.all([loadKnowledgeBase(), loadAdminTechnologies()]);
         await loadSelectedProjectDetails();
         setMessage("", false);
     } catch (error) {
@@ -520,6 +669,68 @@ els.refreshProjectsButton.addEventListener("click", async () => {
     }).catch((error) => {
         setMessage(error.message);
     });
+});
+
+els.refreshKnowledgeButton.addEventListener("click", async () => {
+    await loadKnowledgeBase()
+        .then(() => setMessage("Knowledge base refreshed.", false))
+        .catch((error) => setMessage(error.message));
+});
+
+els.resetTechnologyAdminButton.addEventListener("click", resetTechnologyAdminForm);
+
+els.technologyAdminForm.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    const formData = new FormData(event.currentTarget);
+    const id = formData.get("id");
+    const payload = {
+        name: formData.get("name"),
+        category: formData.get("category"),
+        complexity_weight: Number(formData.get("complexity_weight")),
+        docs_url: formData.get("docs_url"),
+        description: formData.get("description"),
+        best_for: formData.get("best_for"),
+        risk_notes: formData.get("risk_notes"),
+        alternatives: formData.get("alternatives"),
+        is_active: formData.get("is_active") === "on"
+    };
+
+    const path = id ? `/admin/technologies/${id}` : "/admin/technologies";
+    const method = id ? "PUT" : "POST";
+
+    await api(path, {
+        method,
+        body: JSON.stringify(payload)
+    }).then(async () => {
+        resetTechnologyAdminForm();
+        await Promise.all([loadTechnologies(), loadAdminTechnologies(), loadKnowledgeBase()]);
+        setMessage("Technology saved.", false);
+    }).catch((error) => setMessage(error.message));
+});
+
+els.adminTechnologyList.addEventListener("click", async (event) => {
+    const button = event.target.closest("[data-admin-action]");
+    if (!button) {
+        return;
+    }
+
+    const technology = state.adminTechnologies.find((item) => item.id === Number(button.dataset.technologyId));
+    if (!technology) {
+        return;
+    }
+
+    if (button.dataset.adminAction === "edit") {
+        setTechnologyAdminForm(technology);
+        setMessage("Editing technology.", false);
+        return;
+    }
+
+    await api(`/admin/technologies/${technology.id}`, {
+        method: "DELETE"
+    }).then(async () => {
+        await Promise.all([loadTechnologies(), loadAdminTechnologies(), loadKnowledgeBase()]);
+        setMessage("Technology soft deleted.", false);
+    }).catch((error) => setMessage(error.message));
 });
 
 els.projectList.addEventListener("click", (event) => {
@@ -653,12 +864,116 @@ els.analyzeButton.addEventListener("click", async () => {
         });
 
         renderAnalysis(result);
+        await loadDashboardDetails();
         const history = await api(`/analysis/${state.selectedProjectId}/history`);
         renderAnalysisHistory(history);
         setMessage("Analysis complete.", false);
     }).catch((error) => {
         setMessage(error.message);
     });
+});
+
+els.whatIfForm.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    if (!state.selectedProjectId) {
+        setMessage("Select a project first.");
+        return;
+    }
+
+    const formData = new FormData(event.currentTarget);
+    const payload = {
+        daily_users: Number(formData.get("daily_users")),
+        scale: formData.get("scale"),
+        technologyIds: getCheckedTechnologyIds()
+    };
+
+    await api(`/analysis/${state.selectedProjectId}/what-if`, {
+        method: "POST",
+        body: JSON.stringify(payload)
+    }).then((result) => {
+        els.whatIfResult.classList.remove("muted");
+        els.whatIfResult.innerHTML = `
+            <strong>${escapeHtml(result.analysis.evaluation)}</strong>
+            <div class="scoreGrid">
+                <div class="scoreBox"><span>Total</span><strong>${escapeHtml(result.scores.total_score)}</strong></div>
+                <div class="scoreBox"><span>Under</span><strong>${escapeHtml(result.scores.underengineering_score)}</strong></div>
+                <div class="scoreBox"><span>Over</span><strong>${escapeHtml(result.scores.penalty_score)}</strong></div>
+                <div class="scoreBox"><span>Badge</span><strong>${escapeHtml(result.badge.label)}</strong></div>
+            </div>
+        `;
+        setMessage("What-if complete. Saved project was not changed.", false);
+    }).catch((error) => setMessage(error.message));
+});
+
+els.comparisonForm.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    const rightProjectId = event.currentTarget.elements.rightProjectId.value;
+
+    if (!state.selectedProjectId || !rightProjectId) {
+        setMessage("Select two projects to compare.");
+        return;
+    }
+
+    await api(`/analysis/compare?leftProjectId=${state.selectedProjectId}&rightProjectId=${rightProjectId}`)
+        .then((result) => {
+            els.comparisonResult.classList.remove("muted");
+            els.comparisonResult.innerHTML = `
+                <div class="scoreGrid">
+                    <div class="scoreBox"><span>${escapeHtml(result.left.project.name)}</span><strong>${escapeHtml(result.left.scores.total_score)}</strong></div>
+                    <div class="scoreBox"><span>${escapeHtml(result.right.project.name)}</span><strong>${escapeHtml(result.right.scores.total_score)}</strong></div>
+                    <div class="scoreBox"><span>Total delta</span><strong>${escapeHtml(result.delta.total_score)}</strong></div>
+                    <div class="scoreBox"><span>Risk delta</span><strong>${escapeHtml(result.delta.overengineering)}</strong></div>
+                </div>
+            `;
+            setMessage("Comparison complete.", false);
+        }).catch((error) => setMessage(error.message));
+});
+
+els.exportReportButton.addEventListener("click", () => {
+    if (!state.lastAnalysis) {
+        setMessage("Run analysis before exporting.");
+        return;
+    }
+
+    const project = state.projects.find((item) => item.id === state.selectedProjectId);
+    const reportWindow = window.open("", "_blank");
+    reportWindow.document.write(`
+        <!doctype html>
+        <html>
+        <head>
+            <title>Architecture Report</title>
+            <style>
+                body { font-family: Arial, sans-serif; margin: 32px; color: #241f2f; }
+                section { border: 1px solid #ddd; padding: 16px; margin-bottom: 16px; }
+                h1, h2 { margin-top: 0; }
+                li { margin-bottom: 6px; }
+            </style>
+        </head>
+        <body>
+            <h1>${escapeHtml(project?.name || "Project")} Architecture Report</h1>
+            <section>
+                <h2>Summary</h2>
+                <p>${escapeHtml(state.lastAnalysis.analysis.evaluation)}</p>
+                <p>Total score: ${escapeHtml(state.lastAnalysis.scores.total_score)}</p>
+                <p>Badge: ${escapeHtml(state.lastAnalysis.badge?.label || "N/A")}</p>
+            </section>
+            <section>
+                <h2>Technology stack</h2>
+                <p>${escapeHtml((project?.technologies || []).map((technology) => technology.name).join(", ") || "None")}</p>
+            </section>
+            <section>
+                <h2>Recommendations</h2>
+                <ul>${state.lastAnalysis.recommendations.map((item) => `<li>${escapeHtml(item)}</li>`).join("")}</ul>
+            </section>
+            <section>
+                <h2>Suggestions</h2>
+                <ul>${(state.lastDashboard?.suggestions || state.lastAnalysis.suggestions || []).map((item) => `<li>${escapeHtml(item.technology)}: ${escapeHtml(item.suggestion)}</li>`).join("")}</ul>
+            </section>
+            <script>window.print();</script>
+        </body>
+        </html>
+    `);
+    reportWindow.document.close();
 });
 
 bootstrapApp();

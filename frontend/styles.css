@@ -241,7 +241,8 @@ label {
 }
 
 input,
-select {
+select,
+textarea {
     width: 100%;
     min-height: 46px;
     border: 1px solid var(--line);
@@ -253,16 +254,30 @@ select {
     transition: border-color 160ms ease, box-shadow 160ms ease, background 160ms ease;
 }
 
+textarea {
+    min-height: 78px;
+    padding: 10px 12px;
+    resize: vertical;
+}
+
 input[type="checkbox"] {
     accent-color: var(--accent);
 }
 
 input:focus,
-select:focus {
+select:focus,
+textarea:focus {
     outline: none;
     border-color: var(--accent);
     background: #ffffff;
     box-shadow: 0 0 0 4px rgba(142, 107, 183, 0.16);
+}
+
+.buttonRow {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    justify-content: flex-end;
 }
 
 .projectList,
@@ -373,6 +388,131 @@ select:focus {
 
 .technologyList {
     grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+}
+
+.adminGrid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.adminGrid label:nth-of-type(n + 5),
+.adminGrid .inlineCheck,
+.adminGrid button {
+    grid-column: span 2;
+}
+
+.inlineCheck {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.inlineCheck input {
+    width: 18px;
+    min-height: 18px;
+}
+
+.adminTechnologyList,
+.knowledgeList,
+.suggestionList,
+.timelineList,
+.dashboardDetails {
+    display: grid;
+    gap: 10px;
+}
+
+.adminTechnologyList,
+.knowledgeList {
+    margin-top: 16px;
+}
+
+.adminTechCard,
+.knowledgeCard,
+.miniInfo,
+.timelineItem,
+.badgeBox,
+.panelSubform {
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    background: rgba(255, 253, 250, 0.72);
+    padding: 12px;
+}
+
+.adminTechCard {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+}
+
+.adminTechCard.inactive {
+    opacity: 0.62;
+}
+
+.adminTechCard span,
+.knowledgeCard span,
+.knowledgeCard p,
+.miniInfo p,
+.timelineItem span,
+.badgeBox p {
+    color: var(--muted);
+    font-size: 13px;
+    line-height: 1.45;
+    margin: 4px 0 0;
+}
+
+.knowledgeCard a {
+    display: inline-block;
+    margin-top: 8px;
+    color: var(--accent-strong);
+    font-weight: 800;
+}
+
+.dashboardDetails {
+    margin-top: 16px;
+}
+
+.dashboardDetails h3,
+.panelSubform h3 {
+    margin: 0 0 10px;
+    font-size: 16px;
+}
+
+.complexityBadge {
+    display: inline-block;
+    border-radius: 999px;
+    padding: 7px 11px;
+    font-size: 12px;
+    text-transform: uppercase;
+}
+
+.complexityBadge.success {
+    background: rgba(63, 118, 109, 0.12);
+    color: #3f766d;
+}
+
+.complexityBadge.balanced {
+    background: var(--accent-soft);
+    color: var(--accent-strong);
+}
+
+.complexityBadge.warning {
+    background: rgba(154, 106, 33, 0.13);
+    color: #9a6a21;
+}
+
+.complexityBadge.danger {
+    background: rgba(168, 81, 81, 0.12);
+    color: var(--danger);
+}
+
+.panelSubform {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 12px;
+    margin-top: 16px;
+}
+
+.panelSubform h3 {
+    grid-column: 1 / -1;
 }
 
 .techOption {
@@ -748,8 +888,16 @@ select:focus {
     .formGrid,
     .scoreGrid,
     .metricGrid,
-    .chartGrid {
+    .chartGrid,
+    .adminGrid,
+    .panelSubform {
         grid-template-columns: 1fr;
+    }
+
+    .adminGrid label:nth-of-type(n + 5),
+    .adminGrid .inlineCheck,
+    .adminGrid button {
+        grid-column: auto;
     }
 
     .dialogActions {

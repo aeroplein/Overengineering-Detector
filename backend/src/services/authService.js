@@ -4,6 +4,11 @@ import pool from "../config/db.js";
 
 const getJwtSecret = () => process.env.JWT_SECRET || "temporary_secret_key";
 
+const getRoleForEmail = (email, existingRole = "user") => {
+    const adminEmail = process.env.ADMIN_EMAIL?.trim().toLowerCase();
+    return adminEmail && email.toLowerCase() === adminEmail ? "admin" : existingRole;
+};
+
 export const registerUser = async ({ email, password }) => {
     const existingUser = await pool.query(
         `SELECT id FROM users WHERE email = $1`,
@@ -17,10 +22,10 @@ export const registerUser = async ({ email, password }) => {
     const passwordHash = await bcrypt.hash(password, 10);
 
     const result = await pool.query(
-        `INSERT INTO users (email, password_hash)
-         VALUES ($1, $2)
-         RETURNING id, email, created_at`,
-        [email, passwordHash]
+        `INSERT INTO users (email, password_hash, role)
+         VALUES ($1, $2, $3)
+         RETURNING id, email, role, created_at`,
+        [email, passwordHash, getRoleForEmail(email)]
     );
 
     return result.rows[0];
@@ -46,10 +51,22 @@ export const loginUser = async ({ email, password }) => {
         return null;
     }
 
+    const role = getRoleForEmail(user.email, user.role || "user");
+
+    if (role !== user.role) {
+        await pool.query(
+            `UPDATE users
+             SET role = $1
+             WHERE id = $2`,
+            [role, user.id]
+        );
+    }
+
     const token = jwt.sign(
         {
             id: user.id,
-            email: user.email
+            email: user.email,
+            role
         },
         getJwtSecret(),
         {
@@ -61,7 +78,8 @@ export const loginUser = async ({ email, password }) => {
         token,
         user: {
             id: user.id,
-            email: user.email
+            email: user.email,
+            role
         }
     };
 };

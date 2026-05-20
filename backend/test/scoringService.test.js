@@ -3,10 +3,13 @@ import test from "node:test";
 
 import {
     calculateScores,
+    generateBadge,
     generateEvaluation,
     generateFlags,
+    generateRadar,
     generateRecommendations
 } from "../src/services/scoringService.js";
+import { generateSuggestions } from "../src/services/analysisService.js";
 
 const personalProject = {
     name: "Tiny Portfolio",
@@ -74,4 +77,58 @@ test("generateRecommendations returns default guidance when no flags exist", () 
         generateRecommendations([]),
         ["The selected stack looks reasonable for the current project profile."]
     );
+});
+
+test("generateRadar returns dashboard dimensions from scores", () => {
+    const scores = calculateScores(personalProject, [
+        { name: "React", category: "Frontend", complexity_weight: 6 },
+        { name: "AWS", category: "Cloud", complexity_weight: 9 }
+    ]);
+
+    assert.deepEqual(generateRadar(scores), {
+        frontend: 6,
+        backend: 0,
+        infrastructure: 9,
+        overengineering: 10,
+        underengineering: 0
+    });
+});
+
+test("generateBadge labels underengineered and balanced stacks", () => {
+    const underengineeredScores = calculateScores({
+        name: "Enterprise Portal",
+        scale: "Enterprise",
+        daily_users: 50
+    }, []);
+
+    assert.equal(generateBadge(underengineeredScores, []).label, "Underengineered");
+
+    const balancedScores = calculateScores({
+        name: "Startup API",
+        scale: "Startup",
+        daily_users: 500
+    }, [
+        { name: "React", category: "Frontend", complexity_weight: 6 },
+        { name: "Express", category: "Backend", complexity_weight: 5 },
+        { name: "PostgreSQL", category: "Database", complexity_weight: 4 },
+        { name: "Docker", category: "DevOps", complexity_weight: 6 }
+    ]);
+
+    assert.equal(generateBadge(balancedScores, []).label, "Balanced");
+});
+
+test("generateSuggestions returns alternatives and flag-driven guidance", () => {
+    const suggestions = generateSuggestions(personalProject, [
+        {
+            name: "Kubernetes",
+            category: "DevOps",
+            complexity_weight: 10,
+            alternatives: "simple platform hosting"
+        }
+    ], [
+        { flag_name: "PREMATURE_OPTIMIZATION", severity: "HIGH" }
+    ]);
+
+    assert.ok(suggestions.some((item) => item.suggestion.includes("simple platform hosting")));
+    assert.ok(suggestions.some((item) => item.technology === "Infrastructure"));
 });

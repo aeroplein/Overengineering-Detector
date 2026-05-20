@@ -4,6 +4,7 @@ import { fileURLToPath } from "url";
 import pool from "./config/db.js";
 import projectRoutes from "./routes/projectRoutes.js";
 import analysisRoutes from "./routes/analysisRoutes.js";
+import technologyRoutes from "./routes/technologyRoutes.js";
 import { openApiSpec } from "./docs/openapiSpec.js";
 import authRoutes from "./routes/authRoutes.js";
 
@@ -22,6 +23,7 @@ app.use(express.static(frontendPath));
 app.use("/", authRoutes);
 app.use("/", projectRoutes);
 app.use("/", analysisRoutes);
+app.use("/", technologyRoutes);
 
 app.get("/health", (req, res) => {
     res.json({

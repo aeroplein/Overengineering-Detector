@@ -70,15 +70,65 @@ export const openApiSpec = {
                 security: [{ bearerAuth: [] }]
             }
         },
+        "/technologies/{id}": {
+            get: {
+                summary: "Get technology knowledge details",
+                security: [{ bearerAuth: [] }]
+            }
+        },
+        "/knowledge/technologies": {
+            get: {
+                summary: "List technology knowledge base entries",
+                security: [{ bearerAuth: [] }]
+            }
+        },
+        "/admin/technologies": {
+            get: {
+                summary: "Admin list of active and inactive technologies",
+                security: [{ bearerAuth: [] }]
+            },
+            post: {
+                summary: "Admin create technology",
+                security: [{ bearerAuth: [] }]
+            }
+        },
+        "/admin/technologies/{id}": {
+            put: {
+                summary: "Admin update technology",
+                security: [{ bearerAuth: [] }]
+            },
+            delete: {
+                summary: "Admin soft-delete technology by setting is_active false",
+                security: [{ bearerAuth: [] }]
+            }
+        },
         "/analysis/{projectId}": {
             post: {
                 summary: "Run deterministic project analysis",
                 security: [{ bearerAuth: [] }]
             }
         },
+        "/analysis/{projectId}/dashboard": {
+            get: {
+                summary: "Get latest analysis dashboard data including radar, timeline, suggestions, and badge",
+                security: [{ bearerAuth: [] }]
+            }
+        },
         "/analysis/{projectId}/history": {
             get: {
                 summary: "List analysis history for an owned project",
+                security: [{ bearerAuth: [] }]
+            }
+        },
+        "/analysis/{projectId}/what-if": {
+            post: {
+                summary: "Run a non-persisted what-if analysis",
+                security: [{ bearerAuth: [] }]
+            }
+        },
+        "/analysis/compare": {
+            get: {
+                summary: "Compare two owned projects",
                 security: [{ bearerAuth: [] }]
             }
         }

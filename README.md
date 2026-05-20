@@ -60,7 +60,16 @@ DB_PASSWORD=your_database_password
 DB_PORT=5432
 JWT_SECRET=your_jwt_secret_here
 JWT_EXPIRES_IN=1d
+ADMIN_EMAIL=admin@example.com
 ```
+
+For an existing database, run the migration once:
+
+```bash
+psql -U postgres -d overengineering_detector -f ..\sql_scripts\migration_roles_and_technology_metadata.sql
+```
+
+The user whose email matches `ADMIN_EMAIL` becomes an admin after registration/login.
 
 ## Endpoints
 
@@ -96,7 +105,24 @@ Authorization: Bearer <token>
 - `GET /projects/:id/technologies`
   - Returns selected technologies for a project owned by the logged-in user.
 - `GET /technologies`
-  - Returns available technologies for selection.
+  - Returns active technologies for selection.
+- `GET /technologies/:id`
+  - Returns technology knowledge details.
+- `GET /knowledge/technologies`
+  - Returns active technology knowledge base entries.
+
+### Admin
+
+Admin routes require a JWT for a user whose role is `admin`.
+
+- `GET /admin/technologies`
+  - Returns active and inactive technologies.
+- `POST /admin/technologies`
+  - Creates a technology with metadata.
+- `PUT /admin/technologies/:id`
+  - Updates a technology and knowledge metadata.
+- `DELETE /admin/technologies/:id`
+  - Soft deletes a technology by setting `is_active = false`.
 
 ### Analysis
 
@@ -111,6 +137,12 @@ Authorization: Bearer <token>
   - Returns deterministic scores, flags, recommendations, and a local AI-style explanation.
 - `GET /analysis/:projectId/history`
   - Returns analysis history with saved flags and recommendations for a project owned by the logged-in user.
+- `GET /analysis/:projectId/dashboard`
+  - Returns `{ latestAnalysis, radar, timeline, suggestions, badge }` for one owned project.
+- `POST /analysis/:projectId/what-if`
+  - Runs a non-persisted simulation with temporary project fields and technology IDs.
+- `GET /analysis/compare?leftProjectId=1&rightProjectId=2`
+  - Compares two projects owned by the logged-in user.
 
 ### Utility
 
@@ -129,7 +161,12 @@ The minimal frontend is in `frontend/` and is served by the Express server. It i
 - Technology selection
 - Analysis result display
 - Analysis history display
-- Score dashboard with Chart.js visualization
+- Score dashboard with CSS visualization
+- Admin technology panel
+- Technology knowledge base
+- What-if simulator
+- Architecture comparison
+- HTML print/export report
 - Local storage token persistence and logout
 
 ## Scoring and AI/ML Note
@@ -141,3 +178,4 @@ Rule-based scoring is the source of truth. The app calculates scores from techno
 - New projects are saved with the authenticated `req.user.id`.
 - `GET /projects` only returns projects owned by the logged-in user.
 - JWT signing and verification use `JWT_SECRET` from `.env`, with a local fallback for development.
+- Technology deletion is soft delete only; no technology rows are hard-deleted.

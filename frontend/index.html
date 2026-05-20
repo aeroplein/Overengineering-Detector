@@ -103,10 +103,42 @@
                     <div id="technologyList" class="technologyList"></div>
                 </section>
 
+                <section id="adminPanel" class="panel hidden">
+                    <div class="panelHeader">
+                        <h2>Admin technologies</h2>
+                        <button id="resetTechnologyAdminButton" class="ghost" type="button">New technology</button>
+                    </div>
+                    <form id="technologyAdminForm" class="adminGrid">
+                        <input name="id" type="hidden">
+                        <label>Name <input name="name" type="text" required></label>
+                        <label>Category <input name="category" type="text" required></label>
+                        <label>Weight <input name="complexity_weight" type="number" min="1" max="10" required></label>
+                        <label>Docs URL <input name="docs_url" type="url"></label>
+                        <label>Description <textarea name="description"></textarea></label>
+                        <label>Best for <textarea name="best_for"></textarea></label>
+                        <label>Risk notes <textarea name="risk_notes"></textarea></label>
+                        <label>Alternatives <textarea name="alternatives"></textarea></label>
+                        <label class="inlineCheck"><input name="is_active" type="checkbox" checked> Active</label>
+                        <button type="submit">Save technology</button>
+                    </form>
+                    <div id="adminTechnologyList" class="adminTechnologyList"></div>
+                </section>
+
+                <section class="panel">
+                    <div class="panelHeader">
+                        <h2>Knowledge base</h2>
+                        <button id="refreshKnowledgeButton" class="ghost" type="button">Refresh</button>
+                    </div>
+                    <div id="knowledgeList" class="knowledgeList"></div>
+                </section>
+
                 <section class="panel">
                     <div class="panelHeader">
                         <h2>Analysis</h2>
-                        <button id="analyzeButton" type="button">Analyze</button>
+                        <div class="buttonRow">
+                            <button id="exportReportButton" class="ghost" type="button">Export</button>
+                            <button id="analyzeButton" type="button">Analyze</button>
+                        </div>
                     </div>
                     <section id="scoreDashboard" class="scoreDashboard hidden" aria-label="Analysis score dashboard">
                         <div class="metricGrid">
@@ -135,6 +167,36 @@
                         </div>
                     </section>
                     <div id="analysisResult" class="analysisResult muted">Select a project and run analysis.</div>
+                    <div id="dashboardDetails" class="dashboardDetails hidden">
+                        <div id="badgeBox" class="badgeBox"></div>
+                        <div>
+                            <h3>Suggestions</h3>
+                            <div id="suggestionList" class="suggestionList"></div>
+                        </div>
+                        <div>
+                            <h3>Timeline</h3>
+                            <div id="timelineList" class="timelineList"></div>
+                        </div>
+                    </div>
+                    <form id="whatIfForm" class="panelSubform">
+                        <h3>What-if simulator</h3>
+                        <label>Daily users <input name="daily_users" type="number" min="0" value="50"></label>
+                        <label>Scale
+                            <select name="scale">
+                                <option>Personal</option>
+                                <option>Startup</option>
+                                <option>Enterprise</option>
+                            </select>
+                        </label>
+                        <button type="submit">Run what-if</button>
+                    </form>
+                    <div id="whatIfResult" class="analysisResult muted">Run a what-if simulation without saving history.</div>
+                    <form id="comparisonForm" class="panelSubform">
+                        <h3>Compare architecture</h3>
+                        <label>Compare with <select name="rightProjectId"></select></label>
+                        <button type="submit">Compare</button>
+                    </form>
+                    <div id="comparisonResult" class="analysisResult muted">Choose another project to compare.</div>
                     <div class="historyBlock">
                         <h3>History</h3>
                         <div id="analysisHistory" class="analysisHistory muted">No analysis loaded.</div>
@@ -157,7 +219,6 @@
         </section>
     </div>
 
-    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
     <script src="./app.js" type="module"></script>
 </body>
 </html>

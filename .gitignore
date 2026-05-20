@@ -16,9 +16,8 @@ pnpm-debug.log*
 .env.production
 
 # =========================
-# Database / local scripts
+# Database / local data
 # =========================
-/sql_scripts/*.sql
 *.db
 
 # =========================
