@@ -1,0 +1,63 @@
+# =========================
+# Dependencies
+# =========================
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# =========================
+# Environment variables
+# =========================
+.env
+.env.local
+.env.development
+.env.production
+
+# =========================
+# Database / local data
+# =========================
+*.db
+
+# =========================
+# Logs
+# =========================
+logs/
+*.log
+
+# =========================
+# OS files
+# =========================
+.DS_Store
+Thumbs.db
+
+# =========================
+# IDE
+# =========================
+.vscode/
+.idea/
+
+# =========================
+# Build / runtime
+# =========================
+dist/
+build/
+
+# =========================
+# Coverage (if you add tests later)
+# =========================
+coverage/
+
+# =========================
+# Lock files (IMPORTANT RULE)
+# =========================
+# keep ONLY ONE package manager lock file
+package-lock.json
+pnpm-lock.yaml
+yarn.lock
+
+# Local instruction and agent files
+.instructions.md
+AGENTS.md
+copilot-instructions.md
